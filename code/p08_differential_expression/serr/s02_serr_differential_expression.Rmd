@@ -38,7 +38,7 @@ fur_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_ex
 ful_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/serr/fulva_final_annotations.tsv"))
  
 #salmon quant results directory
-salmon_dir <- path_resrepo("/data/intermediate/s07_salmon/serr/final")
+salmon_dir <- path_resrepo("/data/intermediate/p07_salmon/serr/final")
 
 #read in meta data info
 meta <- read_csv(file.path(salmon_dir, "meta_serr.txt"), col_types=cols(.default=col_factor()))
