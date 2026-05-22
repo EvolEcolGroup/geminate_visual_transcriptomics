@@ -45,7 +45,7 @@ multi_annotations <- read_tsv(
 cyanea_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/pom/cyanea_final_annotations.tsv"))
 
 #salmon quant results directory
-salmon_dir <- path_resrepo(("/data/intermediate/s07_salmon/pom/final"))
+salmon_dir <- path_resrepo(("/data/intermediate/p07_salmon/pom/final"))
 
 #read in meta data info
 meta <- read_csv(file.path(salmon_dir, "meta_pom.txt"), col_types=cols(.default=col_factor()))
