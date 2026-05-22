@@ -1,0 +1,62 @@
+---
+title: "MSP table"
+author: "Eirlys Tysall"
+date: "2023-04-28"
+output: html_document
+---
+
+```{r load-packages, include=FALSE}
+#load packages
+library(gt)
+library(tidyverse)
+library(resrepo)
+library(readxl)
+```
+
+```{r load-data}
+msp <- read_excel(path_resrepo("data/raw/external_data/msp/msp_table.xlsx"))
+```
+
+```{r format-table}
+msp_t <- msp %>%
+      gt(rowname_col = "...1") %>%
+       tab_spanner(label = "Short Wave Sensitive", columns = c(3:6)) %>%
+       tab_spanner(label = "Medium Wave Sensitive", columns = c(7:12)) %>%
+       tab_spanner(label = "Rod", columns = 2) %>%
+       tab_spanner(label = "Long Wave Sensitive", columns = 13) %>%
+  tab_row_group(label = "Serranidae", 
+                     rows = c(7:12)) %>%
+       tab_row_group(label = "Pomacentridae", 
+                     rows = c(1:6)) %>%
+       
+       tab_style(style = cell_text(align = "center"), 
+                 locations = cells_body(columns = c(2:13),
+                                        rows = everything())) %>%
+       tab_style(style = cell_text(align = "center"), 
+                 locations = cells_column_labels()) %>%
+       tab_style(style = cell_text(weight = "bold"), 
+                 locations = cells_column_spanners()) %>%
+       tab_style(style = cell_text(weight = "bold",
+                                   style = "italic"), 
+                 locations = cells_row_groups()) %>%
+       tab_style(style = cell_text(style = "italic"), 
+                 locations = cells_stub()) %>%
+       tab_style(style = cell_text(color = "white"), 
+                 locations = cells_stub(rows = c(2,4,6,8,10,12))) %>%
+       tab_style(style = list(cell_borders(sides = c("top"),
+                                           color = "white")),
+                 locations = list(cells_body(columns = everything(),
+                                             rows = c(2,4,6,8,10,12)),
+                                  cells_stub(rows = c(2,4,6,8,10,12)))) %>%
+      tab_options(heading.border.bottom.color = "green")
+ 
+msp_t
+```
+
+```{r save-table}
+# best to save from viewer panel
+gtsave(data = msp_t, 
+       zoom = 1,
+       filename = "msp_table.png",
+       path = path_resrepo("/results/p11_figures/msp_table"))
+```

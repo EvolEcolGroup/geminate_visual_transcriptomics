@@ -1,0 +1,249 @@
+---
+title: "msp table and figure"
+author: "Eirlys Tysall"
+date: "2023-04-21"
+output: html_document
+---
+
+```{r load-packages, include=FALSE}
+#load packages
+library(gt)
+library(tidyverse)
+library(resrepo)
+library(readxl)
+library(patchwork)
+```
+
+```{r load-data}
+# with other sp pom
+msp_pom <- read_excel(path_resrepo("/data/raw/external_data/msp/pom_other_sp_msp.xlsx"))
+
+# with other sp serr
+msp_serr <- read_excel(path_resrepo("/data/raw/external_data/msp/serr_other_sp_msp.xlsx"))
+```
+
+```{r pom-levels}
+#set levels
+msp_pom <- msp_pom %>%
+  mutate(species = fct_relevel(species, "Chromis ovalis¹" ,
+                                        "Chromis hanui¹",
+                                        "Stegastes fasciolatus¹" ,
+                                        "Pomacentrus coelestis³",
+                                        "Dascyllus trimaculatus²",
+                                        "Dascyllus albisella¹",
+                                        "Azurina cyanea",
+                                        "Azurina multilineata",
+                                        "Azurina atrilobata"))
+
+msp_pom <- msp_pom %>%
+  mutate(type = fct_relevel(type, "Short-Wave-Sensitive",
+                                  "Medium-Wave-Sensitive",
+                                  "Long-Wave-Sensitive",
+                                  "Rod",
+                                  "coexp"))
+
+msp_pom <- msp_pom %>%
+  mutate(opsin = fct_relevel(opsin, "SWS1",
+                                   "SWS2B",
+                                   "RH2B",
+                                   "RH2B + RH2A",
+                                   "RH2A",
+                                   "LWS",
+                                   "RH1"))
+```
+
+```{r colours}
+#set colour palette
+colrs <- c("SWS1" =        "purple1",
+           "SWS2B" =       "#3300CC",
+           "SWS2A1" =      "dodgerblue4", 
+           "SWS2A2" =      "#00A9FF",
+           "RH2B" =        "#00BFC4",
+           "RH2B + RH2A" = "#29b983", 
+           "RH2A1" =       "#7CAE00", 
+           "RH2A2" =       "darkolivegreen4",
+           "RH2A" =        "darkolivegreen4",
+           "LWS" =         "red2",
+           "RH1" =         "darkgrey")
+
+y_labels_p <- c("grey63","grey63","grey63","grey63","grey63","grey63",
+                        "grey32","grey32","grey32") 
+```
+
+```{r plot-graph}
+#plot graph
+msp_pom_p <- ggplot() +
+  geom_point(data = msp_pom, mapping = aes(x = mean,
+                                       y = species, 
+                                       colour = mine,
+                                       stroke = 0.4,
+                                       fill = opsin,
+                                       shape = type,
+                                       alpha = mine),
+                                       size = 5.5) +
+             xlim(350, 550) +
+             theme_minimal() +
+             scale_fill_manual(values = colrs,
+                                 aesthetics = "fill") +
+             scale_shape_manual(values = c(23, 24, 21, 22, 18)) +
+             scale_colour_manual(values = c("transparent","black"), #black
+                                 aesthetics = "colour") +
+             scale_alpha_manual(values = c(0.5,1)) +
+             labs(x = "Wavelength (nm)") +
+             guides(colour = "none",
+                    size = "none",
+                    shape = "none",
+                    alpha = "none")   +
+             guides(fill = guide_legend(override.aes = list(shape=c(23,23,
+                                                                    24,18,24,
+                                                                    21,22), 
+                                                            stroke = 0.1, 
+                                                            size = 4))) +
+             theme(panel.grid.major.x = element_line(linetype = "dashed"),
+                   panel.grid.minor.x = element_blank(),
+                   axis.title.y = element_blank(),
+                   axis.text.y = element_text(face = "italic",
+                                              size = 17,
+                                              colour = y_labels_p),
+                   axis.text.x = element_text(size = 17),
+                   axis.title.x = element_text(size = 17,
+                                               margin = margin(t = 20)),
+                   legend.text = element_text(size = 15),
+                   legend.title = element_blank()) +
+             scale_y_discrete(labels=c("Azurina atrilobata" = expression(bolditalic("Azurina atrilobata")), 
+                                      "Azurina multilineata" = expression(bolditalic("Azurina multilineata")),
+                                      "Azurina cyanea" = expression(bolditalic("Azurina cyanea")),
+                                        "Chromis ovalis¹" = expression(italic("Chromis ovalis¹")),
+                                        "Chromis hanui¹" = expression(italic("Chromis hanui¹")),
+                                        "Stegastes fasciolatus¹" = expression(italic("Stegastes fasciolatus¹")),
+                                        "Dascyllus albisella¹" = expression(italic("Dascyllus albisella¹")),
+                                        "Pomacentrus coelestis³" = expression(italic("Pomacentrus coelestis³")),
+                                        "Dascyllus trimaculatus²" = expression(italic("Dascyllus trimaculatus²"))))
+
+
+
+msp_pom_p
+```
+
+###SERRANIDS
+
+```{r serr-levels}
+msp_serr <- msp_serr %>%
+  mutate(species = fct_relevel(species, "Centropristis striata³",
+                                        "Plectropomus leopardus²",
+                                        "Cephalopholis cruentata¹",
+                                        "Cephalopholis panamensis¹",
+                                        "Cephalopholis fulva",
+                                        "Paranthias furcifer",
+                                        "Paranthias colonus"))
+
+
+msp_serr <- msp_serr %>%
+  mutate(type = fct_relevel(type, "Short-Wave-Sensitive",
+                                  "Medium-Wave-Sensitive",
+                                  "Long-Wave-Sensitive",
+                                  "Rod"))
+
+msp_serr <- msp_serr %>%
+  mutate(opsin = fct_relevel(opsin, "SWS2A1",
+                                   "SWS2A2",
+                                    "RH2B",
+                                   "RH2A1",
+                                   "RH2A2",
+                                   "LWS",
+                                   "RH1"))
+
+```
+
+
+```{r colours2}
+#set colour palette
+y_labels_s <- c("grey63","grey63","grey63","grey63","grey32","grey32","grey32") 
+```
+
+```{r plot-graph2}
+#plot graph
+msp_serr_p <- ggplot() +
+  geom_point(data = msp_serr, mapping = aes(x = mean,
+                                       y = species, 
+                                       colour = mine,
+                                       stroke = 0.4,
+                                       fill = opsin,
+                                       shape = type,
+                                       alpha = mine),
+                                       size = 5.5) +
+             xlim(350, 550) +
+             theme_minimal() +
+  
+             scale_fill_manual(values = colrs,
+                                 aesthetics = "fill") +
+             scale_shape_manual(values = c(23, 24, 21, 22)) +
+             scale_colour_manual(values = c("transparent","black"),
+                                 aesthetics = "colour") +
+             scale_alpha_manual(values = c(0.5,1)) +
+             labs(x = "Wavelength (nm)") +
+              guides(colour = "none",
+                    size = "none",
+                    shape = "none",
+                    alpha = "none") +
+             guides(fill = guide_legend(override.aes = list(shape=c(23,23,
+                                                                    24,24,24,
+                                                                    21,22), 
+                                                            stroke = 0.1, 
+                                                            size = 4))) +
+             theme(panel.grid.major.x = element_line(linetype = "dashed"),
+                   panel.grid.minor.x = element_blank(),
+                   axis.title.y = element_blank(),
+                   axis.text.y = element_text(face = "italic",
+                                              size = 17,
+                                              colour = y_labels_s),
+                   axis.text.x = element_text(size = 17),
+                   axis.title.x = element_text(size = 17,
+                                               margin = margin(t = 20)),
+                   legend.text = element_text(size = 15),
+                   legend.title = element_blank()) +
+             scale_y_discrete(labels=c("Paranthias colonus" = expression(bolditalic("Paranthias colonus")),
+                                      "Paranthias furcifer" = expression(bolditalic("Paranthias furcifer")),
+                                      "Cephalopholis fulva" = expression(bolditalic("Cephalopholis fulva")),
+                                      "Centropristis striata³" = expression(italic("Centropristis striata³")),
+                                      "Cephalopholis cruentata¹" = expression(italic("Cephalopholis cruentata¹")),
+                                      "Cephalopholis panamensis¹" = expression(italic("Cephalopholis panamensis¹")),
+                                      "Plectropomus leopardus²" = expression(italic("Plectropomus leopardus²"))))
+
+             
+
+
+
+msp_serr_p
+```
+
+```{r comb-plot}
+(msp_pom_p/msp_serr_p)
+comb_plot <- (msp_pom_p/msp_serr_p)
+```
+
+```{r save-plot}
+#save plot pom
+ggsave(filename = "pom_msp_plot.png",
+       plot = msp_pom_p,
+       width = 16,
+       height = 5,
+       bg = "white",
+       path = path_resrepo("/results/p11_figures/msp_plots"))
+
+#save plot serr
+ggsave(filename = "serr_msp_plot.png",
+       plot = msp_serr_p,
+       width = 15,
+       height = 4,
+       bg = "white",
+       path = path_resrepo("/results/p11_figures/msp_plots"))
+
+# save combined plot 
+ggsave(filename = "combined_msp_plot.png",
+       plot = comb_plot,
+       width = 15,
+       height = 8,
+       bg = "white",
+       path = path_resrepo("/results/p11_figures/msp_plots"))
+```

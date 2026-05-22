@@ -1,0 +1,8 @@
+In the s01_genome_seqs dir place manually extracted and checked genome sequences
+for genes of interest.
+
+Use this nameing format:
+
+<genename>_<Speciesname>.fasta
+
+e.g. aanat1_Chromis_atrilobata.fasta

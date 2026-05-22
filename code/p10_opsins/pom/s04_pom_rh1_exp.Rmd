@@ -1,0 +1,312 @@
+---
+title: "Pomacentrid Opsin Relative Expression"
+author: "Eirlys"
+date: "26/01/2022"
+output: html_document
+---
+
+```{r load-packages, include=FALSE}
+#load packages
+library(tidyverse)
+library(ggplot2)
+library(wesanderson)
+library(resrepo)
+library(writexl)
+```
+
+```{r load-data}
+#load pom sg object from explr_DE script
+load(path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/data_objects/pom_sg"))
+```
+
+```{r counts-object}
+#subset sg object to get the counts and make gene ID's a column
+all_counts <- as.data.frame(sg$abundance) %>% rownames_to_column()
+
+#subset the counts to only the opsin genes using gene ID's
+counts <- all_counts %>% filter(rowname == "49YYQ" |   #sws1
+                                rowname == "49QCG" |   #lws
+                                rowname == "49QSU" |   #rh1
+                                rowname == "4A2Q91" |  #rh2a
+                                rowname == "4A2Q92" |  #rh2b
+                                rowname == "49S2W" )   #sws2B
+                    
+#make gene names the rownames 
+counts <- column_to_rownames(counts)
+
+#check
+counts
+```
+
+```{r split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+atr1_counts <- as.data.frame(counts[,1])     
+atr2_counts <- as.data.frame(counts[,2]) 
+atr3_counts <- as.data.frame(counts[,3])
+atr4_counts <- as.data.frame(counts[,4])
+
+#flip df
+atr1_df <- as.data.frame(t(atr1_counts))
+atr2_df <- as.data.frame(t(atr2_counts))
+atr3_df <- as.data.frame(t(atr3_counts))
+atr4_df <- as.data.frame(t(atr4_counts))
+
+#relabel 
+colnames(atr1_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B") 
+colnames(atr2_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B") 
+colnames(atr3_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+colnames(atr4_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+
+#find relative expression for each gene
+atr1_df$RH1_cone <- (atr1_df$RH1 / (atr1_df$RH1 + atr1_df$SWS1 + atr1_df$SWS2B + atr1_df$RH2A + atr1_df$RH2B + atr1_df$LWS))*100
+atr2_df$RH1_cone <- (atr2_df$RH1 / (atr2_df$RH1 + atr2_df$SWS1 + atr2_df$SWS2B + atr2_df$RH2A + atr2_df$RH2B + atr2_df$LWS))*100
+atr3_df$RH1_cone <- (atr3_df$RH1 / (atr3_df$RH1 + atr3_df$SWS1 + atr3_df$SWS2B + atr3_df$RH2A + atr3_df$RH2B + atr3_df$LWS))*100
+atr4_df$RH1_cone <- (atr4_df$RH1 / (atr4_df$RH1 + atr4_df$SWS1 + atr4_df$SWS2B + atr4_df$RH2A + atr4_df$RH2B + atr4_df$LWS))*100
+```
+
+```{r}
+#remove extra columns
+atr1_df <- as.data.frame(atr1_df[,7])
+atr2_df <- as.data.frame(atr2_df[,7])
+atr3_df <- as.data.frame(atr3_df[,7])
+atr4_df <- as.data.frame(atr4_df[,7])
+
+#combine
+atr_df <- cbind(atr1_df,atr2_df,atr3_df, atr4_df)
+
+#flip back
+all_exp_atr <- as.data.frame(t(atr_df))
+colnames(all_exp_atr) <- "counts" 
+
+#add species column and updat column names 
+all_exp_atr$individual <- c("atrilobata1","atrilobata2","atrilobata3","atrilobata4")
+all_exp_atr$gene <- c("RH1","RH1","RH1","RH1")
+
+#check
+all_exp_atr
+```
+
+```{r}
+ all_exp_atr %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 5)) +
+theme_minimal()
+
+```
+
+###################################################################
+
+```{r mul-split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+mul1_counts <- as.data.frame(counts[,5])     
+mul2_counts <- as.data.frame(counts[,6]) 
+mul3_counts <- as.data.frame(counts[,7])
+mul4_counts <- as.data.frame(counts[,8])
+
+#flip df
+mul1_df <- as.data.frame(t(mul1_counts))
+mul2_df <- as.data.frame(t(mul2_counts))
+mul3_df <- as.data.frame(t(mul3_counts))
+mul4_df <- as.data.frame(t(mul4_counts))
+
+#relabel 
+colnames(mul1_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+colnames(mul2_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+colnames(mul3_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+colnames(mul4_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+
+#find relative expression for each gene
+mul1_df$RH1_cone <- (mul1_df$RH1 / (mul1_df$RH1 + mul1_df$SWS1 + mul1_df$SWS2B + mul1_df$RH2A + mul1_df$RH2B + mul1_df$LWS))*100
+mul2_df$RH1_cone <- (mul2_df$RH1 / (mul2_df$RH1 + mul2_df$SWS1 + mul2_df$SWS2B + mul2_df$RH2A + mul2_df$RH2B + mul2_df$LWS))*100
+mul3_df$RH1_cone <- (mul3_df$RH1 / (mul3_df$RH1 + mul3_df$SWS1 + mul3_df$SWS2B + mul3_df$RH2A + mul3_df$RH2B + mul3_df$LWS))*100
+mul4_df$RH1_cone <- (mul4_df$RH1 / (mul4_df$RH1 + mul4_df$SWS1 + mul4_df$SWS2B + mul4_df$RH2A + mul4_df$RH2B + mul4_df$LWS))*100
+
+```
+
+```{r}
+#remove extra columns
+mul1_df <- as.data.frame(mul1_df[,7])
+mul2_df <- as.data.frame(mul2_df[,7])
+mul3_df <- as.data.frame(mul3_df[,7])
+mul4_df <- as.data.frame(mul4_df[,7])
+
+#combine
+mul_df <- cbind(mul1_df,mul2_df,mul3_df, mul4_df)
+
+#flip back
+all_exp_mul <- as.data.frame(t(mul_df))
+colnames(all_exp_mul) <- "counts" 
+
+#add species column and updat column names 
+all_exp_mul$individual <- c("multilineata1","multilineata2","multilineata3","multilineata4")
+all_exp_mul$gene <- c("RH1","RH1","RH1","RH1")
+
+#check
+all_exp_mul
+```
+
+```{r}
+all_exp_mul %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 5)) +
+theme_minimal()
+
+```
+
+################################################################
+
+```{r cya-split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+cya1_counts <- as.data.frame(counts[,9])     
+cya2_counts <- as.data.frame(counts[,10]) 
+cya3_counts <- as.data.frame(counts[,11])
+cya4_counts <- as.data.frame(counts[,12])
+
+#flip df
+cya1_df <- as.data.frame(t(cya1_counts))
+cya2_df <- as.data.frame(t(cya2_counts))
+cya3_df <- as.data.frame(t(cya3_counts))
+cya4_df <- as.data.frame(t(cya4_counts))
+
+#relabel 
+colnames(cya1_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+colnames(cya2_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+colnames(cya3_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+colnames(cya4_df) <- c("LWS","RH1","SWS2B","SWS1","RH2A","RH2B")  
+
+#find relative expression for each gene
+cya1_df$RH1_cone <- (cya1_df$RH1 / (cya1_df$RH1 + cya1_df$SWS1 + cya1_df$SWS2B + cya1_df$RH2A + cya1_df$RH2B + cya1_df$LWS))*100
+cya2_df$RH1_cone <- (cya2_df$RH1 / (cya2_df$RH1 + cya2_df$SWS1 + cya2_df$SWS2B + cya2_df$RH2A + cya2_df$RH2B + cya2_df$LWS))*100
+cya3_df$RH1_cone <- (cya3_df$RH1 / (cya3_df$RH1 + cya3_df$SWS1 + cya3_df$SWS2B + cya3_df$RH2A + cya3_df$RH2B + cya3_df$LWS))*100
+cya4_df$RH1_cone <- (cya4_df$RH1 / (cya4_df$RH1 + cya4_df$SWS1 + cya4_df$SWS2B + cya4_df$RH2A + cya4_df$RH2B + cya4_df$LWS))*100
+
+```
+
+```{r}
+#remove extra columns
+cya1_df <- as.data.frame(cya1_df[,7])
+cya2_df <- as.data.frame(cya2_df[,7])
+cya3_df <- as.data.frame(cya3_df[,7])
+cya4_df <- as.data.frame(cya4_df[,7])
+
+#combine
+cya_df <- cbind(cya1_df,cya2_df,cya3_df, cya4_df)
+
+#flip back
+all_exp_cya <- as.data.frame(t(cya_df))
+colnames(all_exp_cya) <- "counts" 
+
+#add species column and updat column names 
+all_exp_cya$individual <- c("cyanea1","cyanea2","cyanea3","cyanea4")
+all_exp_cya$gene <- c("RH1","RH1","RH1","RH1")
+
+#check
+all_exp_cya
+```
+
+```{r}
+ all_exp_cya %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 5)) +
+theme_minimal()
+
+```
+
+```{r all-graph}
+all_exp <- rbind(all_exp_atr, all_exp_mul, all_exp_cya)
+all_exp$species <- c("Azurina atrilobata","Azurina atrilobata",
+                     "Azurina atrilobata","Azurina atrilobata",
+                     
+                     "Azurina multilineata","Azurina multilineata",
+                     "Azurina multilineata","Azurina multilineata",
+                     
+                     "Azurina cyanea","Azurina cyanea",
+                     "Azurina cyanea","Azurina cyanea")
+
+
+all_exp$species <- factor(all_exp$species, levels = c("Azurina atrilobata",
+                                                      "Azurina multilineata",
+                                                      "Azurina cyanea"))
+
+all_exp$gene <- factor(all_exp$gene, levels = c("SWS1", "SWS2B","RH2B","RH2A","LWS"))
+```
+
+```{r ind-plot}
+#plot with all individuals
+p <- all_exp %>%
+  ggplot(aes(x = individual, y = counts, fill = as.factor(species))) +
+  geom_bar(stat = "identity") +
+  ylim(0,100) +
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 5)) +
+theme(axis.text.x=element_text(angle = 75, vjust = 0.5))
+p
+```
+
+```{r final-plot}
+#find mean of individuals for plot
+my_sum <- all_exp %>%
+  group_by(species) %>%
+  summarise( 
+    n=n(),
+    mean=mean(counts),
+    sd=sd(counts)
+  ) %>%
+  mutate( se=sd/sqrt(n))  %>%
+  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
+
+#plot mean
+ p1 <- my_sum %>%
+  ggplot(aes(x = species, y = mean, fill = as.factor(species))) +
+  geom_bar(stat = "identity") +
+  ylim(0,100) +
+  labs(y = "RH1 Relative Expression (%)",
+       title = "A") +
+  scale_fill_manual(values = c("#00cc99", "#4473c4", "grey95"),
+                    labels=c("A. atrilobata (TEP)","A. multilineata (CAR)", "A. cyanea (CAR)")) +
+theme_classic() +
+   theme(text = element_text(size = 20),
+         axis.text.x = element_blank(),
+         axis.title.x = element_blank(),
+         legend.title = element_blank(),
+         plot.title = element_text(hjust = 0)) +
+geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2,
+                 position=position_dodge(.9)) 
+ 
+p1
+```
+
+###SAVE RESULTS
+
+```{r save-plot}
+ggsave(path = path_resrepo("results/p10_opsins/pom/s04_pom_rh1_exp"),
+       filename = "pom_rh1_exp.png",
+       width = 7,
+       height = 5,
+       plot = p1)
+```
+
+```{r save-data}
+#save mean relative expression 
+write_xlsx(x = my_sum,
+           path =  path_resrepo("data/intermediate/p10_opsins/pom/s04_pom_rh1_exp/pom_rh1_mean_exp.xlsx"))
+
+#save individual relative expression
+all_exp <- all_exp %>% rownames_to_column("opsin")
+write_xlsx(x = all_exp,
+           path = path_resrepo("data/intermediate/p10_opsins/pom/s04_pom_rh1_exp/pom_rh1_ind_exp.xlsx"))
+
+#save raw counts 
+counts <- counts %>% rownames_to_column("opsin")
+write_xlsx(x = counts,
+           path = path_resrepo("data/intermediate/p10_opsins/pom/s04_pom_rh1_exp/pom_rh1_counts.xlsx"))
+```

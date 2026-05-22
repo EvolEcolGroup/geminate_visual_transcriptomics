@@ -1,0 +1,32 @@
+
+```{r load-packages}
+#load packages
+library(tidyverse)
+library(resrepo)
+library(here)
+library(stringr)
+
+#load contig metrics function
+source(here("code/r_functions/contig_metrics.R"))
+```
+
+```{r load-data-paths}
+#load paths to previously computed ExN50 stats 
+colonus <- "../../data/intermediate/p03_trinity/serr/colonus/s01_trinity/colonus_Trinity.fasta"
+furcifer <- "../../data/intermediate/p03_trinity/serr/furcifer/s01_trinity/furcifer_Trinity.fasta"
+fulva <- "../../data/intermediate/p03_trinity/serr/fulva/s01_trinity/fulva_Trinity.fasta"
+
+atri <- "../../data/intermediate/p03_trinity/pom/atrilobata/s01_trinity/atrilobata_Trinity.fasta"
+multi <- "../../data/intermediate/p03_trinity/pom/multilineata/s01_trinity/multilineata_Trinity.fasta"
+cyanea<- "../../data/intermediate/p03_trinity/pom/cyanea/s01_trinity/cyanea_Trinity.fasta"
+```
+
+```{r build_table}
+#build table
+contig_metrics(transcriptome_one = colonus,
+               transcriptome_two = furcifer,
+               transcriptome_three = fulva,
+               transcriptome_four = atri,
+               transcriptome_five = multi,
+               transcriptome_six = cyanea)
+```

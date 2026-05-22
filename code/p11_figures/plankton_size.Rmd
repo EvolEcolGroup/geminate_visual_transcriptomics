@@ -1,0 +1,120 @@
+---
+title: "plankton_size"
+output: html_document
+---
+
+```{r load-packages}
+#load packages
+library(tidyverse)
+library(ggplot2)
+library(ggridges)
+library(ggtext)
+library(resrepo)
+```
+
+```{r load-data}
+#load data
+plankton <- read.csv(path_resrepo("data/raw/external_data/plankton/plankton.csv"))
+```
+
+```{r format-data}
+# remove white spaces
+plankton <- plankton %>%
+  mutate(plankton = str_trim(plankton))
+
+# pivot data
+wide_data <- plankton %>%
+  pivot_wider(names_from = fish, values_from = c(min_size, max_size))
+
+# filter for multi
+multi_plot_data <- plankton %>%
+  filter(fish == "Azurina multilineata")
+
+# set levels
+multi_plot_data$plankton <- factor(multi_plot_data$plankton, 
+                                   levels =  c("Calanopia sp.", "Nannocalanus minor", "Oncaea sp.",
+                                               "Undinula vulgaris","Candacia pachydactyla", 
+                                               "Temora stylifera","Corycaeus sp.", 
+                                               "Paracalanus sp."))
+# filter for furcifer 
+fur_plot_data <- plankton %>%
+  filter(fish == "Paranthias furcifer") 
+
+# set levels
+fur_plot_data$plankton <- factor(fur_plot_data$plankton, 
+                                   levels =  c("Eucalanus attenuatus", "Euchaeta marina", 
+                                               "Undinula vulgaris","Candacia pachydactyla", 
+                                               "Temora stylifera", "Corycaeus sp.", 
+                                               "Paracalanus sp."))
+```
+
+```{r multi-plot}
+# plot multilineata
+multi <- ggplot(multi_plot_data, aes(y = plankton)) +
+  geom_segment(aes(x = min_size, xend = max_size, yend = plankton), size = 1.2) +
+  geom_point(aes(x = min_size), size = 3) +
+  geom_point(aes(x = max_size), size = 3) +
+  geom_vline(xintercept = 1.2, linetype = "dashed", color = "red", size = 0.5) +
+  theme_bw() +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Azurina multilineata"
+  ) +
+  theme(
+    axis.text.y = element_markdown(size = 12, face = "italic"), 
+    strip.text = element_text(size = 14, face = "italic"),
+    plot.title = element_text(face = "italic", hjust = 1, vjust = 1, size = 13)
+  ) +
+   scale_x_continuous(limits = c(0, 8)) +
+  scale_y_discrete(labels = c("Calanopia sp.", "Nannocalanus minor", "Oncaea sp.",
+                               "**Undinula vulgaris**","**Candacia pachydactyla**", 
+                               "**Temora stylifera**","**Corycaeus sp.**", 
+                               "**Paracalanus sp.**"))
+
+multi
+```
+
+```{r fur-plot}
+# plot furcifer 
+fur <- ggplot(fur_plot_data, aes(y = plankton)) +
+  geom_segment(aes(x = min_size, xend = max_size, yend = plankton), size = 1.2) +
+  geom_point(aes(x = min_size), size = 3) +
+  geom_point(aes(x = max_size), size = 3) +
+  geom_vline(xintercept = 1.4, linetype = "dashed", color = "red", size = 0.5) +
+  theme_bw() +
+  labs(
+    x = "Plankton Size (mm)",
+    y = NULL,
+    title = "Cephalopholis furcifer"
+  ) +
+  theme(
+    axis.text.y = element_markdown(size = 12, face = "italic"), 
+    strip.text = element_text(size = 14, face = "italic"),
+    plot.title = element_text(face = "italic", hjust = 1, vjust = 1, size = 13),
+  ) +
+   scale_x_continuous(limits = c(0, 8)) +
+  scale_y_discrete(labels = c("Eucalanus attenuatus", "Euchaeta marina", 
+                                               "**Undinula vulgaris**","**Candacia pachydactyla**", 
+                                               "**Temora stylifera**", "**Corycaeus sp.**", 
+                                               "**Paracalanus sp.**"))
+fur
+```
+
+```{r combine-plot}
+# Combine with patchwork
+(multi / fur) + plot_layout(guides = "collect")
+comb_plot <- (multi / fur) + plot_layout(guides = "collect")
+```
+
+```{r save-plot}
+# save patchwork plot
+ggsave(
+  path = path_resrepo("results/p11_figures/plankton"),
+  filename = "plankton_sizes.png",
+  plot = comb_plot,
+  width = 10,
+  height = 5,
+  dpi = 300
+)
+```

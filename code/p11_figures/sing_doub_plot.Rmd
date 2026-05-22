@@ -1,0 +1,186 @@
+---
+title: "Untitled"
+author: "Eirlys Tysall"
+date: "2024-06-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages}
+library(binom)
+library(tidyverse)
+library(grid)
+library(scales) 
+library(ggtext)
+library(wesanderson)
+```
+
+```{r load-data}
+data <- read.csv(path_resrepo("data/raw/external_data/sing_doubles/new_counts_sing_doub.csv"))
+```
+
+```{r clean-data}
+# set sp order
+order <- c("furcifer", "colonus", "fulva", "multi", "atri", "cyanea" )         
+
+# create centroids
+centroids <- data %>%
+  group_by(species) %>%
+  summarise(singles = mean(singles), doubles = mean(doubles))
+
+# get geminates
+gem_data <- data %>% filter(species == "atri" | species == "multi" | species == "colonus" | species == "furcifer")
+
+# gem centroids
+gem_centroids <- gem_data %>%
+  group_by(species) %>%
+  summarise(singles = mean(singles), doubles = mean(doubles))
+```
+
+```{r offset}
+calculate_offset <- function(x1, y1, x2, y2, offset) {
+  dx <- x2 - x1
+  dy <- y2 - y1
+  dist <- sqrt(dx^2 + dy^2)
+  ratio <- (dist - offset) / dist
+  list(
+    x = x1 + dx * ratio,
+    y = y1 + dy * ratio,
+    xend = x2 - dx * ratio,
+    yend = y2 - dy * ratio
+  )
+}
+
+# Define the offset
+offset <- 2
+
+# Calculate new positions with offset
+seg1 <- calculate_offset(gem_centroids$singles[1], gem_centroids$doubles[1],
+                         gem_centroids$singles[4], gem_centroids$doubles[4], offset)
+seg2 <- calculate_offset(gem_centroids$singles[2], gem_centroids$doubles[2],
+                         gem_centroids$singles[3], gem_centroids$doubles[3], offset)
+
+# Create a data frame for the segments
+segment_data <- data.frame(
+  x = c(seg1$x, seg2$x),
+  y = c(seg1$y, seg2$y),
+  xend = c(seg1$xend, seg2$xend),
+  yend = c(seg1$yend, seg2$yend)
+)
+
+# set labels
+gem_centroids <- gem_centroids %>%
+  mutate(
+    formatted_label = case_when(
+      species == "atri" ~ "TEP:italic('A. atrilobata')",
+      species == "colonus" ~ "TEP:italic('P. colonus')",
+      species == "furcifer" ~ "CAR:italic('P. furcifer')",
+      species == "multi" ~ "CAR:italic('A. multilineata')"
+    )
+  )
+
+centroids <- centroids %>%
+  mutate(
+    formatted_label = case_when(
+      species == "atri" ~ "TEP:italic('A. atrilobata')",
+      species == "colonus" ~ "TEP:italic('P. colonus')",
+      species == "fulva" ~ "TEP:italic('C. fulva')",
+      species == "furcifer" ~ "CAR:italic('P. furcifer')",
+      species == "multi" ~ "CAR:italic('A. multilineata')",
+      species == "cyanea" ~ "CAR:italic('A. cyanea')"
+    )
+  )
+```
+
+```{r labels}
+# set out group
+data <- data %>%
+  mutate(type = ifelse(species %in% c("cyanea", "fulva"), "OUT", ocean))
+
+# set levels
+centroids$type <- c("TEP", "TEP", "OUT", "OUT", "CAR", "CAR")
+type_order <- c("TEP", "CAR", "OUT")
+centroids$type <- factor(centroids$type, levels = type_order)
+data$type <- factor(data$type, levels = type_order)
+levels(centroids$type)
+levels(data$type)
+```
+
+```{r plot-centroids}
+p <- data%>%
+  ggplot(aes(x = singles, y = doubles, color = type)) +
+  geom_point(size = 2.5, alpha =0.9, shape =16) +  # Points for each individual
+  geom_point(data = centroids, aes(x = singles, y = doubles), size = 4, alpha = 1) +  # Centroids
+  scale_color_manual(values = c(wes_palette("FantasticFox1",n = 1),"grey29","grey85" ), 
+                     labels = c( expression(paste("TEP geminate")),
+                                expression(paste("CAR geminate")),
+                                expression(paste("Outgroup (CAR)"))
+                               )) +
+   geom_segment(data = segment_data,
+               aes(x = x, y = y, xend = xend, yend = yend),
+               arrow = arrow(length = unit(0.2, "cm"), ends = "both"), 
+               color = "black",
+               alpha = 0.5,
+               inherit.aes = FALSE) +
+  theme_classic() +  # Minimal theme
+  labs(
+  x = expression("Single Cone PS"["" * italic(paste("max,s"))]),
+  y = expression("Double Cone PS"["" * italic(paste("max,d"))]),
+  colour = "Species"
+) +
+   theme(axis.title.x = element_text(size = 14, margin = margin(t = 8, r = 0, b = 0, l = 0)),  
+        axis.title.y = element_text(size = 14, margin = margin(t = 0, r = 8, b = 0, l = 0)),
+        axis.text = element_text(size = 14),
+        legend.text = element_text(size = 13),
+        legend.title = element_text(size = 16)) +
+ scale_x_continuous(limits = c(360, 460), breaks = seq(360, 460, by = 20)) +
+scale_y_continuous(limits = c(460, 540), breaks = seq(460, 560, by = 20)) +
+   coord_fixed(ratio = 1) 
+
+
+
+p
+```
+
+```{r plot}
+p2 <- data%>%
+  ggplot(aes(x = singles, y = doubles, color = type)) +
+ # geom_point(size = 2.5, alpha =0.9, shape =16) +  # Points for each individual
+  geom_point(data = centroids, aes(x = singles, y = doubles), size = 5, alpha = 1) +  # Centroids
+  scale_color_manual(values = c(wes_palette("FantasticFox1",n = 1),"grey29","grey90" ), 
+                     labels = c( expression(paste("TEP geminate")),
+                                expression(paste("CAR geminate")),
+                                expression(paste("Outgroup (CAR)"))
+                               )) +
+   geom_segment(data = segment_data,
+               aes(x = x, y = y, xend = xend, yend = yend),
+               arrow = arrow(length = unit(0.2, "cm"), ends = "both"), 
+               color = "black",
+               alpha = 0.5,
+               inherit.aes = FALSE) +
+  theme_classic() +  # Minimal theme
+  labs(
+  x = expression("Single Cone PS"["" * italic(paste("max,s"))]),
+  y = expression("Double Cone PS"["" * italic(paste("max,d"))]),
+  colour = "Species"
+) +
+   theme(axis.title.x = element_text(size = 14, margin = margin(t = 8, r = 0, b = 0, l = 0)),  
+        axis.title.y = element_text(size = 14, margin = margin(t = 0, r = 8, b = 0, l = 0)),
+        axis.text = element_text(size = 14),
+        legend.text = element_text(size = 13),
+        legend.title = element_text(size = 16)) +
+ scale_x_continuous(limits = c(360, 460), breaks = seq(360, 460, by = 20)) +
+scale_y_continuous(limits = c(460, 560), breaks = seq(460, 560, by = 20))
+
+
+
+p2
+```
+```{r save-plot}
+# save plots 
+ggsave(path_resrepo("results/p11_figures/sing_doubles/singles_doubles_plot.png"), plot = p, width = 10, height = 5, dpi = 300)
+```
+

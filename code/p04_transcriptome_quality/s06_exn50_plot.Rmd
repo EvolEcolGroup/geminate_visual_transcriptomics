@@ -1,0 +1,78 @@
+---
+title: "ExN50 Plot"
+author: "Eirlys"
+date: "03/08/2022"
+output: html_document
+---
+
+##SCRIPT TO PLOT ExN50 STATS TO ASSESS TRANSCRIPTOME QUALITY
+
+```{r load-packages}
+#load packages
+library(resrepo)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r load-data, include=FALSE}
+#load data
+colonus <- read_tsv(path_resrepo("/data/intermediate/p04_transcriptome_quality/serr/colonus/s05_stats_exn50/colonus_trinity_ExN50.stats"))
+furcifer <- read_tsv(path_resrepo("/data/intermediate/p04_transcriptome_quality/serr/furcifer/s05_stats_exn50/furcifer_trinity_ExN50.stats"))
+fulva <- read_tsv(path_resrepo("/data/intermediate/p04_transcriptome_quality/serr/fulva/s05_stats_exn50/fulva_trinity_ExN50.stats"))
+atrilobata <- read_tsv(path_resrepo("/data/intermediate/p04_transcriptome_quality/pom/atrilobata/s05_stats_exn50/atrilobata_trinity_ExN50.stats"))
+multilineata <- read_tsv(path_resrepo("/data/intermediate/p04_transcriptome_quality/pom/multilineata/s05_stats_exn50/multilineata_trinity_ExN50.stats"))
+cyanea <- read_tsv(path_resrepo("/data/intermediate/p04_transcriptome_quality/pom/cyanea/s05_stats_exn50/cyanea_trinity_ExN50.stats"))
+```
+
+```{r filter-data}
+#filter data (why??)
+colonus <- colonus %>% filter(Ex > 29)
+furcifer <- furcifer %>% filter(Ex > 29)
+fulva <- fulva %>% filter(Ex > 29)
+atrilobata <- atrilobata %>% filter(Ex > 29)
+multilineata<- multilineata %>% filter(Ex > 29)
+cyanea <- cyanea %>% filter(Ex > 29)
+```
+
+```{r plot-colours}
+#set colours
+colours <- c("A. atrilobata" = "hotpink",
+             "A. multilineata" = "darkturquoise",
+             "A. cyanea" = "seagreen4",
+             "P. colonus" = "darkblue", 
+             "P. furcifer" = "orange",
+             "C. fulva" = "red")
+
+```
+
+```{r plot}
+#plot
+p <- ggplot()+
+  geom_line(data = colonus, mapping = aes(x=Ex, y=ExN50, colour='P. colonus')) +
+  geom_line(data = fulva, mapping = aes(x=Ex, y=ExN50,colour = 'C. fulva')) +
+  geom_line(data = furcifer, mapping = aes(x=Ex, y=ExN50,colour = 'P. furcifer')) +
+  geom_line(data = cyanea, mapping = aes(x=Ex, y=ExN50,colour = 'A. cyanea')) +
+  geom_line(data = atrilobata, mapping = aes(x=Ex, y=ExN50,colour = 'A. atrilobata')) +
+  geom_line(data = multilineata, mapping = aes(x=Ex, y=ExN50,colour = 'A. multilineata')) +
+  labs(x = "\nExpression (%)",
+       y = "N50 Contig Lengeth (bp)\n") +
+  scale_color_manual(values = colours) +
+   theme(legend.text = element_text(face="italic"),
+         panel.background = element_rect(fill = "white"),
+         panel.grid = element_line(colour = "grey94"),
+         legend.key = element_rect(fill = "white"),
+         legend.title = element_blank(),
+         text = element_text(size=20),
+         legend.key.size = unit(1, "cm")) +
+  guides(color = guide_legend( override.aes = list(size=1.5)))
+p
+```
+
+```{r save-plot}
+#save plot
+ggsave(filename = "exn50_plot.png",
+       plot = p,
+       height = 6,
+       width =8.5,
+       path = path_resrepo("/results/p04_transcriptome_quality/s06_exn50_plot"))
+```

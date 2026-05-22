@@ -1,0 +1,495 @@
+---
+title: "Pomacentrid differential expression analysis"
+author: "Eirlys Tysall"
+date: "2023-02-24"
+output: html_document
+---
+
+```{r load-packages, include=FALSE}
+#load packages
+suppressPackageStartupMessages({
+  library(data.table)
+  library(tidyverse)
+  library(tximport)
+  library(markdown)
+  library(DESeq2)
+  library(SummarizedExperiment)
+  library(resrepo)
+})
+```
+
+```{r load-functions}
+#load functions
+#make tx2gene object function
+source(path_resrepo("/code/r_functions/make_tx2gene.R"))
+
+#join multiple tximport outputs function
+source(path_resrepo("/code/r_functions/split_combine_rejoin.R"))
+```
+
+```{r read-in-data, include=FALSE}
+#read in atrilobata annotations
+atri_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/pom/atrilobata_final_annotations.tsv"))
+
+# read in multilineata annotations
+multi_annotations <- read_tsv(
+  path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/pom/multilineata_final_annotations.tsv"),
+  col_types = cols(
+    evalue = col_character(),  # specify columns 3 and 4 as character
+    score = col_character()
+    # Add other column types as needed
+  )
+)
+
+# read in cyanea annotations
+cyanea_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/pom/cyanea_final_annotations.tsv"))
+
+#salmon quant results directory
+salmon_dir <- path_resrepo(("/data/intermediate/s07_salmon/pom/final"))
+
+#read in meta data info
+meta <- read_csv(file.path(salmon_dir, "meta_pom.txt"), col_types=cols(.default=col_factor()))
+
+#salmon quant.sf
+#atri
+a_quant <- read_tsv(file.path(salmon_dir,"S24/quant.sf")) 
+b_quant <- read_tsv(file.path(salmon_dir,"S25/quant.sf")) 
+c_quant <- read_tsv(file.path(salmon_dir,"S26/quant.sf")) 
+d_quant <- read_tsv(file.path(salmon_dir,"S27/quant.sf")) 
+#multi
+e_quant <- read_tsv(file.path(salmon_dir,"S1/quant.sf"))
+f_quant <- read_tsv(file.path(salmon_dir,"S2/quant.sf"))
+g_quant <- read_tsv(file.path(salmon_dir,"S3/quant.sf"))
+h_quant <- read_tsv(file.path(salmon_dir,"S4/quant.sf"))
+#cyanea
+i_quant <- read_tsv(file.path(salmon_dir,"S20/quant.sf"))
+j_quant <- read_tsv(file.path(salmon_dir,"S21/quant.sf"))
+k_quant <- read_tsv(file.path(salmon_dir,"S22/quant.sf"))
+l_quant <- read_tsv(file.path(salmon_dir,"S23/quant.sf"))
+
+```
+
+```{r diff-exp}
+##RUNS FULL DIFFERENTIAL EXPRESSION ANALYSIS
+
+#extract atri
+meta_1 <- meta %>%
+   dplyr::slice(1:4)
+
+#location of all salmon quant.sf files
+salmonfiles_1 <- file.path(salmon_dir, meta_1$Name,"quant.sf")
+names(salmonfiles_1) <- meta_1$Name
+
+#check all files named in meta_info.txt present
+stopifnot(all(file.exists(salmonfiles_1)))
+
+###
+
+#extract multi
+meta_2 <- meta %>%
+   dplyr::slice(5:8)
+
+#location of all salmon quant.sf files
+salmonfiles_2 <- file.path(salmon_dir, meta_2$Name,"quant.sf")
+names(salmonfiles_2) <- meta_2$Name
+
+#check all files named in meta_info.txt present
+stopifnot(all(file.exists(salmonfiles_2)))
+
+###
+
+#extract cyanea
+meta_3 <- meta %>%
+   dplyr::slice(-(1:8))
+
+meta_1
+
+#location of all salmon quant.sf files
+salmonfiles_3 <- file.path(salmon_dir, meta_3$Name,"quant.sf")
+names(salmonfiles_3) <- meta_3$Name
+
+#check all files named in meta_info.txt present
+stopifnot(all(file.exists(salmonfiles_3)))
+
+##############################################
+
+#atrii
+#create tx2gene object
+
+atri_tx2gene_object <- make_tx2gene(eggnog_annotation_file = atri_annotations,
+                                   salmon_quant_file_1 = a_quant,
+                                   salmon_quant_file_2 = b_quant,
+                                   salmon_quant_file_3 = c_quant, 
+                                   salmon_quant_file_4 = d_quant)
+
+#atri
+#use tx2gene object to collapse trinity isoforms to gene level annotations
+sg_atri <- tximport(files = salmonfiles_1, 
+                   type = "salmon", 
+                   tx2gene = atri_tx2gene_object,
+                   ignoreAfterBar = TRUE)
+
+####################################################
+
+#multi
+#create tx2gene object 
+multi_tx2gene_object <- make_tx2gene(eggnog_annotation_file = multi_annotations,
+                                   salmon_quant_file_1 = e_quant,
+                                   salmon_quant_file_2 = f_quant,
+                                   salmon_quant_file_3 = g_quant, 
+                                   salmon_quant_file_4 = h_quant)
+
+
+#multi
+#use tx2gene object to collapse trinity isoforms to gene level annotations
+sg_multi <- tximport(files = salmonfiles_2, 
+                   type = "salmon", 
+                   tx2gene = multi_tx2gene_object, 
+                   ignoreAfterBar = TRUE)
+
+
+##################################################
+
+#cyanea
+#create tx2gene object 
+cyanea_tx2gene_object <- make_tx2gene(eggnog_annotation_file = cyanea_annotations,
+                                   salmon_quant_file_1 = i_quant,
+                                   salmon_quant_file_2 = j_quant,
+                                   salmon_quant_file_3 = k_quant, 
+                                   salmon_quant_file_4 = l_quant)
+
+
+
+
+#cyanea
+#use tx2gene object to collapse trinity isoforms to gene level annotations
+sg_cyanea <- tximport(files = salmonfiles_3, 
+                   type = "salmon", 
+                   tx2gene = cyanea_tx2gene_object, 
+                   ignoreAfterBar = TRUE)
+
+#####################################################
+
+#tximport output has 4 elements: counts, abundance, length, countsFromAbundance
+#Here I extract each equivalent element from colonus and furcifer tximport output 
+#and join them using matching row names 
+
+atri_counts <- rownames_to_column(as.data.frame(sg_atri$counts))
+atri_abd <- rownames_to_column(as.data.frame(sg_atri$abundance))
+atri_len <- rownames_to_column(as.data.frame(sg_atri$length))
+
+multi_counts <- rownames_to_column(as.data.frame(sg_multi$counts))
+multi_abd <- rownames_to_column(as.data.frame(sg_multi$abundance))
+multi_len <- rownames_to_column(as.data.frame(sg_multi$length))
+
+cyanea_counts <- rownames_to_column(as.data.frame(sg_cyanea$counts))
+cyanea_abd <- rownames_to_column(as.data.frame(sg_cyanea$abundance))
+cyanea_len <- rownames_to_column(as.data.frame(sg_cyanea$length))
+
+##add in 0 for counts 
+atri_multi_counts <- full_join(atri_counts, multi_counts)
+
+all_counts<- full_join(atri_multi_counts, cyanea_counts)
+
+all_counts_na <- all_counts[!complete.cases(all_counts), ] #2959
+
+all_counts[is.na(all_counts)] <- 0
+
+##add in 0 for abundance
+
+atri_multi_abd <- full_join(atri_abd, multi_abd)
+
+all_abd<- full_join(atri_multi_abd, cyanea_abd)
+
+all_abd_na <- all_abd[!complete.cases(all_abd), ] #2959
+
+all_abd[is.na(all_abd)] <- 0
+
+##add in average for length
+
+atri_multi_len <- full_join(atri_len, multi_len)
+
+all_len<- full_join(atri_multi_len, cyanea_len)
+
+all_len_na <- all_len[!complete.cases(all_len), ] #2959
+
+
+#function for length average
+replace_na_with_mean <- function(row) {
+  mean_value <- mean(row, na.rm = TRUE)  # Calculate mean excluding NAs
+  row[is.na(row)] <- mean_value           # Replace NAs with mean
+  return(row)
+}
+
+# Apply the function to each row
+all_len[, -1] <- t(apply(all_len[, -1], 1, replace_na_with_mean))
+
+all_counts_m <- all_counts %>% column_to_rownames() %>% as.matrix()
+all_abd_m <- all_abd %>% column_to_rownames() %>% as.matrix()
+all_len_m <- all_len %>% column_to_rownames() %>% as.matrix()
+
+all_sg <- list()
+  
+  #Add each matriix to list 
+  all_sg[["abundance"]] <- all_abd_m
+  all_sg[["counts"]] <- all_counts_m
+  all_sg[["length"]] <- all_len_m
+  all_sg[["countsFromAbundance"]] <- "no"
+  
+  
+sg <- all_sg
+
+
+###############################################
+
+
+#creates _DESeqDataSet_
+ds_se <- DESeq2::DESeqDataSetFromTximport(txi = sg, 
+                                  colData = meta,
+                                  design = ~ Species)
+
+#################################################
+
+#runs DESeq diff expression analysis
+ds_se <- DESeq2::DESeq(ds_se)
+```
+
+```{r subset-results}
+res_gem_filt <- DESeq2::results(ds_se, 
+                               name="Species_A.multilineata_vs_A.atrilobata", 
+                               lfcThreshold = 0.5, 
+                               alpha = 0.05)
+
+gene_code <- c("49XM4","49QHR","49VMA","4A6WB","49XFU1","49XFU2","49WBX","49TYN",
+            "4A0DI","49UVW","4A127","49TK5","49WJ7","49UFF","49S7R","4A2MR",
+            "49YH8","49VB3","49SJD","49T5U","49R5D","49WZN","49S06","49PYM","PARIE",
+            "4A27E","49XC4","4A5MG","4A13M","49V8D","4A0TV","49XUM","49VYF1",
+            "49VYF2","49VUD","4A0N0","49XUW1","49XUW2","49QHG","49WTJ","49YV11",
+            "49YV12","49SUB","49R8Z","49XPK","49Y02","49TP6","49XM9","4A6Y0",
+            "49UXN","4A6E6","49Z3E",
+            "49S3W","49SQ7","49R2B","4A582","4A63P","49VV8","49ZE6","49UB5",
+            "4A1XJ","49VYA","49UJA","49UMK","49WSA","49XSJ","49RM7","4A4PS",
+            "4A4VB","49VSK","49YFA","49ZMT","4A1II","49QNB","49VVR","49UCK",
+            "49RFK","4A44T","4A4FK","49WVI","49YJN","4A0K4","49WUQ")
+
+gene_name <- c("Exo-rho","opn3","opn4a","opn4b","opn4xa","opn4xb","opn5","opn6a","opn7a",
+           "opn7b","opn7d","opn8a","opn8b","opn8c","opn9","parapinopsin-like","rgra",
+           "rgrb","rrh","tmtops2b","tmtops3a","tmtopsa","tmtopsb","VAL-opsin-a","parietopsin",
+           "aanat1","arntl","ciart","clock a","clock b","cry-dash","cry1-like","cry1a",
+           "cry1b","cry2","cry5","nocta","noctb","npas2","nr1d1","nr1d2a",
+           "nr1d2b","per1","per2","per3","rora","rorb","timeless", "csnk1da",
+           "csnk1db","csnk1ea","csnk1eb",
+           "RCVRN","GRK1","GRK7","SAG","ARR3","CNGA1","CNGA3","CNGB1",
+           "CNGB3","gnat1","gnat2","GNB1","GNB3","GNB5a","GNB5b","GNGT1",
+           "GNGT2","guca1a","guca1b","guca1c","gucy2d","gucy2f","pde6a","pde6b",
+           "pde6c","pde6g","pde6h","RGS9","RGS9BP","slc24a1","slc24a2")
+
+df <- data.frame(
+  gene = gene_code,
+  gene_name = gene_name
+)
+
+#subset results
+res_gem_sub <- res_gem_filt[row.names(res_gem_filt) %in% gene_code, ]
+res_gem_sub$padj <- p.adjust(res_gem_sub$pvalue, method="BH")
+
+res_gem_df <- rownames_to_column(as.data.frame(res_gem_sub))
+colnames(res_gem_df)[1]<- "gene"
+
+full <-full_join(df, res_gem_df, by = "gene")
+```
+
+```{r}
+#any(is.na(rownames(res_gem_sub)))
+
+# If there are missing row names, you can assign new row names
+#rownames(res_gem_sub) <- seq_len(nrow(res_gem_sub))
+
+# Now, try to convert to a data frame with row names as a column
+#res_gem_df <- rownames_to_column(as.data.frame(res_gem_sub))
+```
+
+```{r save-subset}
+#save subset results 
+writexl::write_xlsx(full, path = path_resrepo("data/intermediate/p08_differential_expression/s02_differential_expression/pom/pom_subset_filt.xlsx"))
+```
+
+
+##SAVE DATA OBJECTS##
+
+```{r vst-transform, message=FALSE}
+#Variance stabilising transformation (VST), a heuristic that transforms the 
+# variance so it becomes independent of mean
+vsd <- DESeq2::vst(ds_se)
+
+# save vsd data for use in downstream analysis 
+save(vsd, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/data_objects/pom_vsd"))
+```
+
+```{r save-sg}
+#save sg data for use in opsin expression analysis 
+save(sg, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/data_objects/pom_sg"))
+
+#ind species sg
+#atri
+save(sg_atri, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/data_objects/atri_sg"))
+
+#multi
+save(sg_multi, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/data_objects/multi_sg"))
+
+#atri
+save(sg_cyanea, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/data_objects/cyanea_sg"))
+```
+
+```{r save-ds_se}
+#save DESeqDataSet for downstream analysis
+save(ds_se, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/data_objects/pom_ds_se"))
+```
+
+##RUN AND SAVE RESULTS OBJECTS -- FULL RESULTS OF ALL GENES ##
+
+### ATRILOBATA vs MULTI
+
+```{r gem-results}
+#make res object with comparison want
+res_gem <- DESeq2::results(ds_se, name = "Species_A.multilineata_vs_A.atrilobata")
+```
+
+```{r gem_save}
+#save geminate comparison
+res_gem <- as.data.frame(res_gem)
+res_gem <- setDT(res_gem, keep.rownames = "gene")
+
+write.csv(res_gem, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/unfiltered_results/pom_res_gem.csv"), row.names = FALSE)
+```
+
+### CYANEA vs ATRILOBATA
+
+```{r cya-atri-results}
+#make res object with comparison want
+res_cya_atri <- DESeq2::results(ds_se, name = "Species_A.cyanea_vs_A.atrilobata")
+```
+
+```{r cya-atri-save}
+#save results of cyanea atri comparison 
+res_cya_atri <- as.data.frame(res_cya_atri)
+res_cya_atri <- setDT(res_cya_atri, keep.rownames = "gene")
+
+write.csv(res_cya_atri, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/unfiltered_results/pom_res_cya_atri.csv"),
+          row.names = FALSE)
+
+```
+
+### CYANEA vs MULTI
+
+```{r cya-mul-results}
+#change levels before run in order to get cyanea vs multi comparison
+ds_se1 <- ds_se
+
+#levels
+ds_se1$Species <- relevel(ds_se1$Species, ref = "A.multilineata")
+
+#runs DESeq diff expression analysis
+ds_se1 <- DESeq2::DESeq(ds_se1)
+
+#check levels
+DESeq2::resultsNames(ds_se1)
+
+#make res object with comparison want
+res_cya_multi <- DESeq2::results(ds_se1, name = "Species_A.cyanea_vs_A.multilineata")
+```
+
+```{r cya-mul-save}
+#save results of cyanea multi comparison 
+res_cya_multi <- as.data.frame(res_cya_multi)
+res_cya_multi <- setDT(res_cya_multi, keep.rownames = "gene")
+
+write.csv(res_cya_multi, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/pom/unfiltered_results/pom_res_cya_multi.csv"), row.names = FALSE)
+```
+
+###SAVE WITH FILTERING AS PER SCHURCH PAPER
+
+```{r filtering}
+#filter results with minimum lfc = 0.5 and padj = 0.01
+res_gem_filt <- DESeq2::results(ds_se, 
+                               name="Species_A.multilineata_vs_A.atrilobata", 
+                               lfcThreshold = 0.5, 
+                               alpha = 0.05)
+#how many sig overall
+summary(res_gem_filt)
+table(res_gem_filt$padj < 0.05)
+
+res_cya_atri_filt <- DESeq2::results(ds_se, 
+                               name="Species_A.cyanea_vs_A.atrilobata", 
+                               lfcThreshold = 0.5, 
+                               alpha = 0.05)
+
+res_cya_multi_filt <- DESeq2::results(ds_se1, 
+                               name="Species_A.cyanea_vs_A.multilineata", 
+                               lfcThreshold = 0.5, 
+                               alpha = 0.05)
+
+```
+
+
+```{r save-filtered}
+#save filtered results
+#geminates
+res_gem_filt <- as.data.frame(res_gem_filt)
+res_gem_filt <- setDT(res_gem_filt, keep.rownames = "gene")
+write.csv(res_gem_filt, file = path_resrepo("data/intermediate/p08_differential_expression/s02_differential_expression/pom/filtered_results/pom_res_gem_filt.csv"), row.names = FALSE)
+
+#cyanea vs atrilobata
+res_cya_atri_filt <- as.data.frame(res_cya_atri_filt)
+res_cya_atri_filt <- setDT(res_cya_atri_filt, keep.rownames = "gene")
+write.csv(res_cya_atri_filt, file = path_resrepo("data/intermediate/p08_differential_expression/s02_differential_expression/pom/filtered_results/pom_res_cya_atri_filt.csv"), row.names = FALSE)
+
+#cyanea vs multilineata
+res_cya_multi_filt <- as.data.frame(res_cya_multi_filt)
+res_cya_multi_filt <- setDT(res_cya_multi_filt, keep.rownames = "gene")
+write.csv(res_cya_multi_filt, file = path_resrepo("data/intermediate/p08_differential_expression/s02_differential_expression/pom/filtered_results/pom_res_cya_multi_filt.csv"), row.names = FALSE)
+
+```
+
+```{r session-info}
+#Session Info
+sessionInfo()
+```
+
+R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 20.04.6 LTS
+
+Matrix products: default
+BLAS/LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.8.so;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_GB.UTF-8       LC_NUMERIC=C               LC_TIME=en_GB.UTF-8        LC_COLLATE=en_GB.UTF-8    
+ [5] LC_MONETARY=en_GB.UTF-8    LC_MESSAGES=en_GB.UTF-8    LC_PAPER=en_GB.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C             LC_MEASUREMENT=en_GB.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Europe/London
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+ [1] utf8_1.2.4                  generics_0.1.3              SparseArray_1.2.4           bitops_1.0-7               
+ [5] DESeq2_1.42.1               lattice_0.21-9              digest_0.6.35               magrittr_2.0.3             
+ [9] evaluate_0.23               grid_4.3.2                  fastmap_1.2.0               Matrix_1.6-1.1             
+[13] writexl_1.5.0               GenomeInfoDb_1.38.8         fansi_1.0.6                 scales_1.3.0               
+[17] codetools_0.2-19            abind_1.4-5                 cli_3.6.2                   rlang_1.1.3                
+[21] crayon_1.5.2                XVector_0.42.0              Biobase_2.62.0              munsell_0.5.1              
+[25] DelayedArray_0.28.0         yaml_2.3.8                  S4Arrays_1.2.1              tools_4.3.2                
+[29] parallel_4.3.2              BiocParallel_1.36.0         dplyr_1.1.4                 colorspace_2.1-0           
+[33] ggplot2_3.5.1               locfit_1.5-9.9              GenomeInfoDbData_1.2.11     SummarizedExperiment_1.32.0
+[37] BiocGenerics_0.48.1         vctrs_0.6.5                 R6_2.5.1                    matrixStats_1.3.0          
+[41] stats4_4.3.2                lifecycle_1.0.4             zlibbioc_1.48.2             S4Vectors_0.40.2           
+[45] IRanges_2.36.0              pkgconfig_2.0.3             gtable_0.3.5                pillar_1.9.0               
+[49] glue_1.7.0                  Rcpp_1.0.12                 xfun_0.44                   tibble_3.2.1               
+[53] GenomicRanges_1.54.1        tidyselect_1.2.1            rstudioapi_0.16.0           MatrixGenerics_1.14.0      
+[57] knitr_1.46                  htmltools_0.5.8.1           rmarkdown_2.26              compiler_4.3.2             
+[61] RCurl_1.98-1.14            
+
+

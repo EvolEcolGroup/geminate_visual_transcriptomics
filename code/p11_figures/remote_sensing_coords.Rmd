@@ -1,0 +1,112 @@
+---
+title: "Resrepo R Markdown template"
+author: "Your Name"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+knit: resrepo::knit_to_results
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages}
+library(resrepo)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(sf)
+library(leaflet)
+library(ggrepel)
+```
+
+```{r set-dirs}
+# indir
+input_dir <- path_resrepo("data/raw/external_data/remote_sensing")
+# outdir
+output_dir <- path_resrepo("results/p11_figures/remote_sensing")
+```
+
+```{r load-data}
+# load coords
+coords <- read_xlsx(file.path(input_dir, "coordinates_remote_sensing.xlsx"))
+```
+
+```{r labels}
+labels <- c("Providencia", "Curacao", "Blanquilla",
+"Belize" ,"La Parguera", "Navassa Island",
+ "Isla Saboga", "Isla Taboga",            
+"Achotines", "Tebada", "Isla Gorgona",   "Bahia Culebra")
+
+coords$labels <- labels
+```
+
+```{r sf}
+samples_sf <- st_as_sf(coords, coords = c("LON", "LAT"), crs = 4326)
+```
+
+```{r check-points}
+leaflet(samples_sf) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    color = "blue",
+    weight = 1,
+    fillOpacity = 0.4,
+    radius = 3
+  ) 
+```
+
+```{r maps}
+# get map for central america
+americas <- ne_countries(scale = "medium", continent = c("North America","South America"), returnclass = "sf")
+americas_points<- st_centroid(americas)
+americas_points <- cbind(americas, st_coordinates(st_centroid(americas$geometry)))
+
+americas_points_crop <- americas_points %>% filter(name %in% c("Belize", "Honduras", "Panama", "Nicaragua", "Costa Rica", "Colombia", "Venezuela", "El Salvador", "Jamaica"))
+```
+
+```{r plot}
+map_samples <- ggplot(data = americas) +
+  geom_sf(colour = "darkgrey", fill = "antiquewhite") +
+  geom_sf(
+    data = samples_sf,
+    color = "red",
+    size = 2
+  ) +
+  geom_label_repel(data = coords, aes(x = LON, y = LAT, label = labels, fill = SIDE),
+    color = "white",
+    fontface = "bold",
+    check_overlap = TRUE,
+   # position = position_nudge(y = 0.6, x = 0.3),
+    size = 3,
+    box.padding = 0.3,     # space around label
+  point.padding = 0.1,   # space from point
+  force = 1,             # how strongly labels repel
+  max.overlaps = Inf,     # don’t drop labels
+  nudge_x = 0.3,
+   show.legend = FALSE
+) +
+  scale_fill_manual(
+    values = c(
+      "TEP" = wes_palette("FantasticFox1", n = 1),
+      "CAR" = "grey28"
+    )
+  ) +
+    coord_sf(xlim = c(-90, -63), ylim = c(1, 20), expand = FALSE) +
+  
+   theme(panel.background = element_rect(fill = "aliceblue")) +
+    geom_text(data= americas_points_crop, aes(x=X, y=Y, label=name), 
+            color = "black", 
+            fontface = "italic", 
+            check_overlap = TRUE,
+            size = 2.5) 
+
+map_samples
+```
+
+```{r save-map}
+ggsave(filename = file.path(output_dir, "map_samples.png"), plot = map_samples, width = 8, height = 6)
+ggsave(filename = file.path(output_dir, "map_samples.pdf"), plot = map_samples, width = 8, height = 6)
+```

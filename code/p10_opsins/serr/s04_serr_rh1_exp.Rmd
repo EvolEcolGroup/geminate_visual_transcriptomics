@@ -1,0 +1,307 @@
+---
+title: "Serranid Opsin Relative Expression"
+author: "Eirlys"
+date: "26/01/2022"
+output: html_document
+---
+
+```{r load-packages, include=FALSE}
+#load packages
+library(tidyverse)
+library(ggplot2)
+library(resrepo)
+library(wesanderson)
+library(viridis)
+library(writexl)
+```
+
+```{r load-data}
+#load serr sg object from explr_DE script
+load(path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/serr_sg"))
+```
+
+```{r counts-object}
+#subset sg object to get the counts and make gene ID's a column
+counts <- as.data.frame(sg$abundance) %>% rownames_to_column()
+
+#subset the counts to only the opsin genes using gene ID's
+counts <- counts %>% filter(rowname == "49QCG" | #lws
+                            rowname == "49QSU" | #rh1
+                            rowname == "4A2Q93" | #rh2a1
+                            rowname == "4A2Q94" | #rh2a2
+                            rowname == "49S2W" | #sws2b
+                            rowname == "49QKB1" | #sws2a1
+                            rowname == "49QKB2") #sws2a2
+
+
+#make gene names the rownames 
+counts <- column_to_rownames(counts)
+
+#check
+counts
+```
+
+```{r split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+col1_counts <- as.data.frame(counts[,1])     
+col2_counts <- as.data.frame(counts[,2]) 
+col3_counts <- as.data.frame(counts[,3])
+col4_counts <- as.data.frame(counts[,4])
+
+#flip df
+col1_df <- as.data.frame(t(col1_counts))
+col2_df <- as.data.frame(t(col2_counts))
+col3_df <- as.data.frame(t(col3_counts))
+col4_df <- as.data.frame(t(col4_counts))
+
+#relabel 
+colnames(col1_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2") 
+colnames(col2_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2") 
+colnames(col3_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2") 
+colnames(col4_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2") 
+
+#find relative expression for each gene
+col1_df$RH1_cone <- (col1_df$RH1 / (col1_df$RH1 + col1_df$LWS + col1_df$SWS2A1 + col1_df$SWS2A2 + col1_df$SWS2B + col1_df$RH2A1 + col1_df$RH2A2))*100
+col2_df$RH1_cone <- (col2_df$RH1 / (col2_df$RH1 + col2_df$LWS + col2_df$SWS2A1 + col2_df$SWS2A2 + col2_df$SWS2B + col2_df$RH2A1 + col2_df$RH2A2))*100
+col3_df$RH1_cone <- (col3_df$RH1 / (col3_df$RH1 + col3_df$LWS + col3_df$SWS2A1 + col3_df$SWS2A2 + col3_df$SWS2B + col3_df$RH2A1 + col3_df$RH2A2))*100
+col4_df$RH1_cone <- (col4_df$RH1 / (col4_df$RH1 + col4_df$LWS + col4_df$SWS2A1 + col4_df$SWS2A2 + col4_df$SWS2B + col4_df$RH2A1 + col4_df$RH2A2))*100
+```
+
+```{r}
+#remove extra columns
+col1_df <- as.data.frame(col1_df[,8])
+col2_df <- as.data.frame(col2_df[,8])
+col3_df <- as.data.frame(col3_df[,8])
+col4_df <- as.data.frame(col4_df[,8])
+
+#combine
+col_df <- cbind(col1_df,col2_df,col3_df, col4_df)
+
+#flip back
+all_exp_col <- as.data.frame(t(col_df))
+colnames(all_exp_col) <- "counts" 
+
+#add species column and updat column names 
+all_exp_col$individual <- c("colonus1","colonus2","colonus3","colonus4")
+all_exp_col$gene <- c("RH1","RH1","RH1","RH1")
+
+#check
+all_exp_col
+```
+
+```{r}
+ all_exp_col %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = viridis(6)) +
+theme_minimal()
+
+```
+
+###################################################################
+
+```{r fur-split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+fur1_counts <- as.data.frame(counts[,5])     
+fur2_counts <- as.data.frame(counts[,6]) 
+fur3_counts <- as.data.frame(counts[,7])
+fur4_counts <- as.data.frame(counts[,8])
+
+#flip df
+fur1_df <- as.data.frame(t(fur1_counts))
+fur2_df <- as.data.frame(t(fur2_counts))
+fur3_df <- as.data.frame(t(fur3_counts))
+fur4_df <- as.data.frame(t(fur4_counts))
+
+#relabel 
+colnames(fur1_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2")
+colnames(fur2_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2")
+colnames(fur3_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2") 
+colnames(fur4_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2")
+
+#find relative expression for each gene
+fur1_df$RH1_cone <- (fur1_df$RH1 / (fur1_df$RH1 + fur1_df$LWS + fur1_df$SWS2A1 + fur1_df$SWS2A2 + fur1_df$SWS2B + fur1_df$RH2A1 + fur1_df$RH2A2))*100
+fur2_df$RH1_cone <- (fur2_df$RH1 / (fur2_df$RH1 + fur2_df$LWS + fur2_df$SWS2A1 + fur2_df$SWS2A2 + fur2_df$SWS2B + fur2_df$RH2A1 + fur2_df$RH2A2))*100
+fur3_df$RH1_cone <- (fur3_df$RH1 / (fur3_df$RH1 + fur3_df$LWS + fur3_df$SWS2A1 + fur3_df$SWS2A2 + fur3_df$SWS2B + fur3_df$RH2A1 + fur3_df$RH2A2))*100
+fur4_df$RH1_cone <- (fur4_df$RH1 / (fur4_df$RH1 + fur4_df$LWS + fur4_df$SWS2A1 + fur4_df$SWS2A2 + fur4_df$SWS2B + fur4_df$RH2A1 + fur4_df$RH2A2))*100
+```
+
+```{r}
+#remove extra furumns
+fur1_df <- as.data.frame(fur1_df[,8])
+fur2_df <- as.data.frame(fur2_df[,8])
+fur3_df <- as.data.frame(fur3_df[,8])
+fur4_df <- as.data.frame(fur4_df[,8])
+
+#combine
+fur_df <- cbind(fur1_df,fur2_df,fur3_df, fur4_df)
+
+#flip back
+all_exp_fur <- as.data.frame(t(fur_df))
+colnames(all_exp_fur) <- "counts" 
+
+#add species furumn and updat furumn names 
+all_exp_fur$individual <- c("furcifer1","furcifer2","furcifer3","furcifer4")
+all_exp_fur$gene <- c("RH1","RH1","RH1","RH1")
+
+#check
+all_exp_fur
+```
+
+```{r}
+ all_exp_fur %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = viridis(6)) +
+theme_minimal()
+
+```
+
+################################################################
+
+```{r ful-split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+ful1_counts <- as.data.frame(counts[,9])     
+ful2_counts <- as.data.frame(counts[,10]) 
+ful3_counts <- as.data.frame(counts[,11])
+ful4_counts <- as.data.frame(counts[,12])
+
+#flip df
+ful1_df <- as.data.frame(t(ful1_counts))
+ful2_df <- as.data.frame(t(ful2_counts))
+ful3_df <- as.data.frame(t(ful3_counts))
+ful4_df <- as.data.frame(t(ful4_counts))
+
+#relabel 
+colnames(ful1_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2") 
+colnames(ful2_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2")
+colnames(ful3_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2") 
+colnames(ful4_df) <- c("LWS","SWS2A1","SWS2A2","RH1","SWS2B","RH2A1","RH2A2") 
+
+#find relative expression for each gene
+ful1_df$RH1_cone <- (ful1_df$RH1 / (ful1_df$RH1 + ful1_df$LWS + ful1_df$SWS2A1 + ful1_df$SWS2A2 + ful1_df$SWS2B + ful1_df$RH2A1 + ful1_df$RH2A2))*100
+ful2_df$RH1_cone <- (ful2_df$RH1 / (ful2_df$RH1 + ful2_df$LWS + ful2_df$SWS2A1 + ful2_df$SWS2A2 + ful2_df$SWS2B + ful2_df$RH2A1 + ful2_df$RH2A2))*100
+ful3_df$RH1_cone <- (ful3_df$RH1 / (ful3_df$RH1 + ful3_df$LWS + ful3_df$SWS2A1 + ful3_df$SWS2A2 + ful3_df$SWS2B + ful3_df$RH2A1 + ful3_df$RH2A2))*100
+ful4_df$RH1_cone <- (ful4_df$RH1 / (ful4_df$RH1 + ful4_df$LWS + ful4_df$SWS2A1 + ful4_df$SWS2A2 + ful4_df$SWS2B + ful4_df$RH2A1 + ful4_df$RH2A2))*100
+
+```
+
+```{r}
+#remove extra furumns
+ful1_df <- as.data.frame(ful1_df[,8])
+ful2_df <- as.data.frame(ful2_df[,8])
+ful3_df <- as.data.frame(ful3_df[,8])
+ful4_df <- as.data.frame(ful4_df[,8])
+
+#combine
+ful_df <- cbind(ful1_df,ful2_df,ful3_df, ful4_df)
+
+#flip back
+all_exp_ful <- as.data.frame(t(ful_df))
+colnames(all_exp_ful) <- "counts" 
+
+#add species fulumn and updat fulumn names 
+all_exp_ful$individual <- c("fulva1","fulva2","fulva3","fulva4")
+all_exp_ful$gene <- c("RH1","RH1","RH1","RH1")
+
+#check
+all_exp_ful
+```
+
+```{r}
+ all_exp_ful %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = viridis(6)) +
+theme_minimal()
+```
+
+```{r all-graph}
+
+all_exp <- rbind(all_exp_col, all_exp_fur, all_exp_ful)
+
+all_exp$species <- c("colonus","colonus","colonus","colonus",
+                     "furcifer","furcifer","furcifer","furcifer",
+                     "fulva","fulva","fulva","fulva")
+
+
+all_exp$species <- factor(all_exp$species, levels = c("colonus","furcifer","fulva"))
+
+
+```
+
+```{r ind-plot}
+#plot with all individuals
+p <- all_exp %>%
+  ggplot(aes(x = individual, y = counts, fill = species)) +
+  geom_bar(stat = "identity") +
+  ylim(0,100) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme(axis.text.x=element_text(angle = 75, vjust = 0.5))
+
+p
+```
+
+```{r final-plot}
+#find mean of individuals for plot
+my_sum <- all_exp %>%
+  group_by(species) %>%
+  summarise( 
+    n=n(),
+    mean=mean(counts),
+    sd=sd(counts)
+  ) %>%
+  mutate( se=sd/sqrt(n))  %>%
+  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
+
+#plot mean
+ p1 <- my_sum %>%
+  ggplot(aes(x = species, y = mean, fill = as.factor(species))) +
+  geom_bar(stat = "identity") +
+  ylim(0,100) +
+  labs(y = "RH1 Relative Expression (%)",
+       title = "B") +
+  scale_fill_manual(values = c("#00cc99", "#4473c4", "grey95"),
+                    labels = c("P. colonus (TEP)", "P. furcifer (CAR)", "C. fulva (CAR)")) +
+theme_classic() +
+   theme(text = element_text(size = 20),
+         axis.text.x = element_blank(),
+         axis.title.x = element_blank(),
+         legend.title = element_blank(),
+         plot.title = element_text(hjust = 0)) +
+geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2,
+                 position=position_dodge(.9))  
+p1
+```
+
+###SAVE RESULTS
+
+```{r save-plot}
+ggsave(path = path_resrepo("results/p10_opsins/serr/s04_serr_rh1_exp"),
+       filename = "serr_rh1_exp.png",
+       width = 7,
+       height = 5,
+       plot = p1)
+```
+
+```{r save-data}
+#save mean relative expression 
+write_xlsx(x = my_sum,
+           path =  path_resrepo("data/intermediate/p10_opsins/serr/s04_serr_rh1_exp/serr_rh1_mean_exp.xlsx"))
+
+#save individual relative expression
+all_exp <- all_exp %>% rownames_to_column("opsin")
+write_xlsx(x = all_exp,
+           path = path_resrepo("data/intermediate/p10_opsins/serr/s04_serr_rh1_exp/serr_rh1_ind_exp.xlsx"))
+
+#save raw counts 
+counts <- counts %>% rownames_to_column("opsin")
+write_xlsx(x = counts,
+           path = path_resrepo("data/intermediate/p10_opsins/serr/s04_serr_rh1_exp/serr_rh1_counts.xlsx"))
+```

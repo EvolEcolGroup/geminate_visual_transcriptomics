@@ -1,0 +1,378 @@
+---
+title: "Heatmaps of genes of interest"
+author: "Eirlys"
+date: "01/02/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#load packages
+library(tidyverse)
+library(pheatmap)
+library(resrepo)
+library(DESeq2)
+```
+
+```{r load-data, include=FALSE}
+#read in annotations file (any serr)
+col_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/serr/colonus_final_annotations.tsv"))
+
+#load vsd data from DE analysis for heatmap
+load(path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/serr_vsd"))
+```
+
+```{r plot-colours}
+#plot colours and set up
+Species  <- c("#00cc99", "#4473c4", "grey90")
+names(Species) <- c("P.colonus", "P.furcifer","C.fulva")
+Ocean <- c("cadetblue2","#F5DD61") #rosybrown2
+names(Ocean) <- c("TEP", "CAR")
+anno_colors <- list(Species = Species, Ocean = Ocean)
+```
+
+```{r non-vis-ops}
+#non-visual ops
+nonvis_gene_name <-  c("rgra",
+"rgrb",
+"rrh",
+"opn4a",
+"opn4b",
+"opn4xa",
+"opn4xb",
+"VAL-opsin-a",
+"parapinopsin-like",
+"parietopsin",
+"tmtopsa",
+"tmtopsb",
+"tmtops2b",
+"tmtops3a",
+"Exo-rho",
+"opn3",
+"opn5",
+"opn6a",
+"opn7a",
+"opn7b",
+"opn7d",
+"opn8a",
+"opn8b",
+"opn9",
+"opn8c")
+
+nonvis_gene_code <-   c("49YH8",
+"49VB3",
+"49SJD",
+"49VMA",
+"4A6WB",
+"49XFU1",
+"49XFU2",
+"49PYM",
+"4A2MR",
+"PARIE",
+"49WZN",
+"49S06",
+"49T5U",
+"49R5D",
+"49XM4",
+"49QHR",
+"49WBX",
+"49TYN",
+"4A0DI",
+"49UVW",
+"4A127",
+"49TK5",
+"49WJ7",
+"49S7R",
+"49UFF")
+
+nonvis_df <- data.frame(
+  gene_code = nonvis_gene_code,
+  gene_name = nonvis_gene_name
+)
+
+###################
+
+#prep heatmap
+mat <- assay(vsd)[nonvis_df$gene_code,]
+mat <- mat - rowMeans(mat)
+df <- as.data.frame(colData(vsd)[, c("Species", "Ocean")])
+row.names(df) <- colnames(mat)
+rownames(mat) <- nonvis_df$gene_name
+
+##################
+
+# Assuming you have a vector of significant gene names
+significant_genes <- c("opn4a", "rgrb", "rrh")
+
+# Create a vector indicating significance
+significance_vector <- ifelse(rownames(mat) %in% significant_genes, 1, 0.4) # Adjust the opacity as needed
+
+#italic gene names 
+ital_names <- lapply(
+  rownames(mat),
+  function(x) bquote(italic(.(x))))
+
+#######################
+
+#plot heatmap
+p1 <- pheatmap(mat, 
+               cellwidth = 30, 
+               cellheight = 20, 
+               annotation_col = df, 
+               annotation_colors = anno_colors,
+               show_colnames = FALSE,
+               show_rownames = TRUE,
+               fontsize_row = 12,
+               cluster_cols = FALSE,
+               cluster_rows = FALSE,
+               fontsize = 15,
+               border_color = "white",
+                labels_row = as.expression(ital_names),
+               alpha = significance_vector) 
+p1
+```
+
+
+```{r circadian}
+#circadian
+circ_gene_code <- c("4A13M",
+"49V8D",
+"49XC4",
+"49SUB",
+"49R8Z",
+"49XPK",
+"49VYF1",
+"49VYF2",
+"49VUD",
+"49XUM",
+"4A0TV",
+"4A0N0",
+"49Y02",
+"49TP6",
+"4A5MG",
+"4A6Y0",
+"49UXN",
+"4A6E6",
+"49Z3E",
+"49XM9",
+"4A27E",
+"49XUW1",
+"49XUW2",
+"49QHG",
+"49WTJ",
+"49YV11",
+"49YV12")
+
+circ_gene_name <- c("clock a",
+"clock b",
+"bmal1a",
+"per1",
+"per2",
+"per3",
+"cry1a",
+"cry1b",
+"cry2",
+"cry1-like",
+"cry-dash",
+"cry5",
+"rora",
+"rorb",
+"ciart",
+"csnk1da",
+"csnk1db",
+"csnk1ea",
+"csnk1eb",
+"timeless", 
+"aanat1",
+"nocta",
+"noctb",
+"npas2",
+"nr1d1",
+"nr1d2a",
+"nr1d2b")
+
+circ_df <- data.frame(
+  gene_code = circ_gene_code,
+  gene_name = circ_gene_name
+)
+
+###################
+
+#prep heatmap
+mat <- assay(vsd)[circ_df$gene_code,]
+mat <- mat - rowMeans(mat)
+df <- as.data.frame(colData(vsd)[, c("Species", "Ocean")])
+row.names(df) <- colnames(mat)
+rownames(mat) <- circ_df$gene_name
+
+##################
+
+# Assuming you have a vector of significant gene names
+significant_genes <- c("nocta", "timeless", "npas2")
+
+# Create a vector indicating significance
+significance_vector <- ifelse(rownames(mat) %in% significant_genes, 1, 0.4) # Adjust the opacity as needed
+
+#italic gene names 
+ital_names <- lapply(
+  rownames(mat),
+  function(x) bquote(italic(.(x))))
+
+
+#######################
+
+#plot heatmap
+p2 <- pheatmap(mat, 
+               cellwidth = 30, 
+               cellheight = 20, 
+               annotation_col = df, 
+               annotation_colors = anno_colors,
+               show_colnames = FALSE,
+               show_rownames = TRUE,
+               fontsize_row = 12,
+               cluster_cols = FALSE,
+               cluster_rows = FALSE,
+               fontsize = 15,
+               border_color = "white",
+               labels_row = as.expression(ital_names),
+               alpha = significance_vector) 
+p2
+```
+
+```{r}
+photo_gene_name <- c("gnat1",
+"gnb1",
+"gngt1",
+"cnga1",
+"cngb1",
+"pde6a",
+"pde6b",
+"pde6g",
+"rcvrn",
+"grk1",
+"sag",
+"slc24a1",
+"gnat2",
+"gnb3",
+"gngt2",
+"cnga3",
+"cngb3",
+"pde6c",
+"pde6h",
+"grk7",
+"guca1c",
+"arr3",
+"slc24a2",
+"guca1a",
+"guca1b",
+"gucy2d",
+"gucy2f",
+"rgs9",
+"rgs9bp",
+"gnb5a",
+"gnb5b")
+
+photo_gene_code <- c("49VYA",
+"49UMK",
+"4A4PS",
+"49VV8",
+"49UB5",
+"49VVR",
+"49UCK",
+"4A44T",
+"49S3W",
+"49SQ7",
+"4A582",
+"4A0K4",
+"49UJA",
+"49WSA",
+"4A4VB",
+"49ZE6",
+"4A1XJ",
+"49RFK",
+"4A4FK",
+"49R2B",
+"49ZMT",
+"4A63P",
+"49WUQ",
+"49VSK",
+"49YFA",
+"4A1II",
+"49QNB",
+"49WVI",
+"49YJN",
+"49XSJ",
+"49RM7")
+
+photo_df <- data.frame(
+  gene_code = photo_gene_code,
+  gene_name = photo_gene_name
+)
+
+###################
+
+#prep heatmap
+mat <- assay(vsd)[photo_df$gene_code,]
+mat <- mat - rowMeans(mat)
+df <- as.data.frame(colData(vsd)[, c("Species", "Ocean")])
+row.names(df) <- colnames(mat)
+rownames(mat) <- photo_df$gene_name
+
+##################
+
+# Assuming you have a vector of significant gene names
+significant_genes <- c("gnat2","gnb5a","guca1c")
+
+# Create a vector indicating significance
+significance_vector <- ifelse(rownames(mat) %in% significant_genes, 1, 0.4) # Adjust the opacity as needed
+
+#italic gene names 
+ital_names <- lapply(
+  rownames(mat),
+  function(x) bquote(italic(.(x))))
+
+#######################
+
+#plot heatmap
+p3 <- pheatmap(mat, 
+               cellwidth = 30, 
+               cellheight = 20, 
+               annotation_col = df, 
+               annotation_colors = anno_colors,
+               show_colnames = FALSE,
+               show_rownames = TRUE,
+               fontsize_row = 12,
+               cluster_cols = FALSE,
+               cluster_rows = FALSE,
+               fontsize = 15,
+               border_color = "white",
+               labels_row = as.expression(ital_names),
+               alpha = significance_vector)
+p3
+```
+
+```{r save-plots}
+#save heatmap plots 
+#phototransduction
+ggsave(path = path_resrepo("/results/p09_genes_of_interest/serr"),
+       filename = "phototransduction_hm_plot.png",
+       width = 10,
+       height = 10,
+       bg = "white",
+       plot = p1)
+
+#phototransduction
+ggsave(path = path_resrepo("/results/p09_genes_of_interest/serr"),
+       filename = "circadian_hm_plot.png",
+       width = 10,
+       height = 10,
+       bg = "white",
+       plot = p2)
+
+#phototransduction
+ggsave(path = path_resrepo("/results/p09_genes_of_interest/serr"),
+       filename = "all_genes_hm_plot.png",
+       width = 10,
+       height = 10,
+       bg = "white",
+       plot = p3)
+```

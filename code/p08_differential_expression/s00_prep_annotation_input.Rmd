@@ -1,0 +1,179 @@
+---
+title: "prep_annotation_input"
+author: "Eirlys Tysall"
+date: "2023-10-11"
+output: html_document
+---
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(resrepo)
+```
+
+```{r load-data, message=FALSE}
+#read in colonus annotations
+col_annotations <- read_tsv(path_resrepo("/data/intermediate/p05_annotation/s03_split_annotation/serr/colonus.emapper.annotations"))
+col_add_annot <- read_tsv(path_resrepo("/data/intermediate/p06_transcriptome_edit/p01_genome/serr/s08_annotation_join/colonus_add_annotations.tsv"), col_names = FALSE)
+
+# read in furcifer annotations
+fur_annotations <- read_tsv(path_resrepo("/data/intermediate/p05_annotation/s03_split_annotation/serr/furcifer.emapper.annotations"))
+fur_add_annot <- read_tsv(path_resrepo("/data/intermediate/p06_transcriptome_edit/p01_genome/serr/s08_annotation_join/furcifer_add_annotations.tsv"), col_names = FALSE)
+
+# read in fulva annotations
+ful_annotations <- read_tsv(path_resrepo("/data/intermediate/p05_annotation/s03_split_annotation/serr/fulva.emapper.annotations"))
+ful_add_annot <- read_tsv(path_resrepo("/data/intermediate/p06_transcriptome_edit/p01_genome/serr/s08_annotation_join/fulva_add_annotations.tsv"), col_names = FALSE)
+###
+
+#read in atrilobata annotations
+atri_annotations <- read_tsv(path_resrepo("/data/intermediate/p05_annotation/s03_split_annotation/pom/atrilobata.emapper.annotations"))
+atri_add_annot <- read_tsv(path_resrepo("/data/intermediate/p06_transcriptome_edit/p01_genome/pom/s08_annotation_join/atrilobata_add_annotations.tsv"), col_names = FALSE)
+
+#read in multilineata annotations
+multi_annotations <- read_tsv(path_resrepo("/data/intermediate/p05_annotation/s03_split_annotation/pom/multilineata.emapper.annotations"))
+multi_add_annot <- read_tsv(path_resrepo("/data/intermediate/p06_transcriptome_edit/p01_genome/pom/s08_annotation_join/multilineata_add_annotations.tsv"), col_names = FALSE)
+
+#read in cyanea annotations
+cyanea_annotations <- read_tsv(path_resrepo("/data/intermediate/p05_annotation/s03_split_annotation/pom/cyanea.emapper.annotations"))
+cyanea_add_annot <- read_tsv(path_resrepo("/data/intermediate/p06_transcriptome_edit/p01_genome/pom/s08_annotation_join/cyanea_add_annotations.tsv"), col_names = FALSE)
+```
+
+```{r annotation-format}
+#edit annotation columns so get individual actin vert etc. columns
+#colonus
+col_annotations <- col_annotations %>%
+                   separate(col = eggNOG_OGs, into = c("root", "root2", "root3", "root4", "euk", "euk2", "euk3",                                                         "euk4","opis", "meta","bilat", "chord", "vert", "actin"),
+                   fill = "left", sep = ",")
+
+col_annotations <- col_annotations %>% dplyr::select(- c("root", "root2", "root3", "root4", "euk", "euk2", "euk3",                                                         "euk4","opis","meta","bilat"))
+
+col_annotations$vert <- sub("@.*", "",  col_annotations$vert)
+col_annotations$actin <- sub("@.*", "", col_annotations$actin)
+col_annotations$chord <- sub("@.*", "", col_annotations$chord)
+
+###################################################
+
+#furcifer
+fur_annotations <- fur_annotations %>%
+                   separate(col = eggNOG_OGs, into = c("root", "root2", "root3", "root4", "euk", "euk2", "euk3",                                                         "euk4","opis", "meta","bilat", "chord", "vert", "actin"),
+                   fill = "left", sep = ",")
+
+fur_annotations <- fur_annotations %>% dplyr::select(- c("root", "root2", "root3", "root4", "euk", "euk2", "euk3",                                                         "euk4","opis","meta","bilat"))
+
+fur_annotations$vert <- sub("@.*", "",  fur_annotations$vert)
+fur_annotations$actin <- sub("@.*", "", fur_annotations$actin)
+fur_annotations$chord <- sub("@.*", "", fur_annotations$chord)
+
+###############################################
+
+#fulva
+ful_annotations <- ful_annotations %>%
+                   separate(col = eggNOG_OGs, into = c("root", "root2", "root3", "root4", "euk", "euk2", "euk3",                                                         "euk4","opis", "meta","bilat", "chord", "vert", "actin"),
+                   fill = "left", sep = ",")
+
+ful_annotations <- ful_annotations %>% dplyr::select(- c("root", "root2", "root3", "root4", "euk", "euk2", "euk3",                                                         "euk4","opis","meta","bilat"))
+
+ful_annotations$vert <- sub("@.*", "",  ful_annotations$vert)
+ful_annotations$actin <- sub("@.*", "", ful_annotations$actin)
+ful_annotations$chord <- sub("@.*", "", ful_annotations$chord)
+
+###
+
+#atri
+atri_annotations <- atri_annotations %>%
+                   separate(col = eggNOG_OGs, into = c("root", "root2", "root3", "root4", "euk", "euk2", "euk3",                                                         "euk4","opis", "meta","bilat", "chord", "vert", "actin"),
+                   fill = "left", sep = ",")
+
+atri_annotations <- atri_annotations %>% select(- c("root", "root2", "root3", "root4", "euk", "euk2", "euk3",                                                         "euk4","opis","meta","bilat"))
+
+atri_annotations$vert <- sub("@.*", "",  atri_annotations$vert)
+atri_annotations$actin <- sub("@.*", "", atri_annotations$actin)
+atri_annotations$chord <- sub("@.*", "", atri_annotations$chord)
+
+#multi
+multi_annotations <- multi_annotations %>%
+                   separate(col = eggNOG_OGs, into = c("root", "root2", "root3", "root4","root5", "euk", "euk2", "euk3", "euk4","euk5","opis", "meta","bilat", "chord", "vert", "actin"),
+                   fill = "left", sep = ",")
+
+multi_annotations <- multi_annotations %>% select(- c("root", "root2", "root3", "root4", "root5", "euk", "euk2", "euk3", "euk4","euk5", "opis","meta","bilat"))
+
+multi_annotations$vert <- sub("@.*", "",  multi_annotations$vert)
+multi_annotations$actin <- sub("@.*", "", multi_annotations$actin)
+multi_annotations$chord <- sub("@.*", "", multi_annotations$chord)
+
+#cyanea
+cyanea_annotations <- cyanea_annotations %>%
+                   separate(col = eggNOG_OGs, into = c("root", "root2", "root3", "root4","root5", "euk",                              "euk2", "euk3","euk4","euk5","opis", "meta","bilat", "chord", "vert", "actin"),
+                   fill = "left", sep = ",")
+
+cyanea_annotations <- cyanea_annotations %>% select(- c("root", "root2", "root3", "root4","root5" ,"euk", "euk2", "euk3","euk4","euk5","opis","meta","bilat"))
+
+cyanea_annotations$vert <- sub("@.*", "",  cyanea_annotations$vert)
+cyanea_annotations$actin <- sub("@.*", "", cyanea_annotations$actin)
+cyanea_annotations$chord <- sub("@.*", "", cyanea_annotations$chord)
+```
+
+```{r}
+#combines with added annotations needed for non-visual opsins 
+# Select the column names from one of the data frames (e.g., df1)
+col_column_names <- colnames(col_annotations)
+
+# Rename the columns of df2 to match the selected column names
+col_add_annot <- setNames(col_add_annot, col_column_names)
+
+# Combine the rows using bind_rows
+final_col_annotations <- rbind(col_annotations, col_add_annot)
+
+#furcifer
+fur_column_names <- colnames(fur_annotations)
+fur_add_annot <- setNames(fur_add_annot, fur_column_names)
+final_fur_annotations <- rbind(fur_annotations, fur_add_annot)
+
+#fulva
+ful_column_names <- colnames(ful_annotations)
+ful_add_annot <- setNames(ful_add_annot, ful_column_names)
+final_ful_annotations <- rbind(ful_annotations, ful_add_annot)
+
+#atrilobata
+atri_column_names <- colnames(atri_annotations)
+atri_add_annot <- setNames(atri_add_annot, atri_column_names)
+final_atri_annotations <- rbind(atri_annotations, atri_add_annot)
+
+#multilineata
+multi_column_names <- colnames(multi_annotations)
+multi_add_annot <- setNames(multi_add_annot, multi_column_names)
+final_multi_annotations <- rbind(multi_annotations, multi_add_annot)
+
+multi_annotations <- multi_annotations %>%
+  mutate(across(c(3, 4), as.character))
+
+#cyanea
+cyanea_column_names <- colnames(cyanea_annotations)
+cyanea_add_annot <- setNames(cyanea_add_annot, cyanea_column_names)
+final_cyanea_annotations <- rbind(cyanea_annotations, cyanea_add_annot)
+```
+
+```{r save-annotation}
+#save col
+write_tsv(x = final_col_annotations, 
+          file = path_resrepo("data/intermediate/p08_differential_expression/s00_final_annotation/serr/colonus_final_annotations.tsv"))
+
+#save fur
+write_tsv(x = final_fur_annotations, 
+          file = path_resrepo("data/intermediate/p08_differential_expression/s00_final_annotation/serr/furcifer_final_annotations.tsv"))
+
+#save ful
+write_tsv(x = final_ful_annotations, 
+          file = path_resrepo("data/intermediate/p08_differential_expression/s00_final_annotation/serr/fulva_final_annotations.tsv"))
+
+#save atri
+write_tsv(x = final_atri_annotations, 
+          file = path_resrepo("data/intermediate/p08_differential_expression/s00_final_annotation/pom/atrilobata_final_annotations.tsv"))
+
+#save multi
+write_tsv(x = final_multi_annotations, 
+          file = path_resrepo("data/intermediate/p08_differential_expression/s00_final_annotation/pom/multilineata_final_annotations.tsv"))
+
+#save cyanea
+write_tsv(x = final_cyanea_annotations, 
+          file = path_resrepo("data/intermediate/p08_differential_expression/s00_final_annotation/pom/cyanea_final_annotations.tsv"))
+```

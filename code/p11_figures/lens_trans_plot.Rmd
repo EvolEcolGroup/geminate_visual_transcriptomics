@@ -1,0 +1,61 @@
+---
+title: "uv lens transmission plot"
+output: html_document
+date: "2024-10-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages}
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(wesanderson)
+library(resrepo)
+```
+
+```{r load-data}
+wl <- read_xlsx(path_resrepo("data/raw/external_data/uv_lens/transm_lens_creolefish.xlsx"))
+```
+
+```{r define-t50}
+# Define T50 values
+T50_transmittance <- 50  #  T50 transmittance value
+T50_wavelength <- 408  # T50 wavelength value
+```
+
+```{r plot}
+# plot
+wl %>% 
+  ggplot(aes(x = wl, y = trr)) +
+  geom_line(color = wes_palette("Zissou1", 1), size = 1) +
+  
+  # Horizontal line goes to the left edge (beyond plot panel)
+  geom_segment(aes(x = -Inf, xend = T50_wavelength, 
+                   y = T50_transmittance, yend = T50_transmittance), 
+               linetype = "dashed", color = "grey60", size = 0.5) +
+  
+  # Vertical line goes to the bottom edge (beyond plot panel)
+  geom_segment(aes(x = T50_wavelength, xend = T50_wavelength, 
+                   y = -Inf, yend = T50_transmittance), 
+               linetype = "dashed", color = "grey60", size = 0.5) +
+
+  labs(x = "Wavelength (nm)", y = "Transmittance") +
+  scale_x_continuous(limits = c(300, 650), breaks = seq(300, 650, by = 50)) +
+  scale_y_continuous(limits = c(0, 105)) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
+    axis.title.x = element_text(size = 18, margin = margin(t = 10)),
+    axis.title.y = element_text(size = 18, margin = margin(t = 10))
+  )
+```
+
+```{r save-plot}
+# save plot
+ggsave(filename = path_resrepo("results/s11_figures/uv_lens/sws1_lens_transmittance.png"), 
+       width = 8, height = 6, dpi = 300)
+```

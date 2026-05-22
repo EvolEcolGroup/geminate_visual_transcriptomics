@@ -1,0 +1,520 @@
+---
+title: "Serranid Opsin Relative Expression"
+author: "Eirlys"
+date: "26/01/2022"
+output: html_document
+---
+#DOUBLE = RH2A1 RH2A2 LWS
+
+```{r setup, include=FALSE}
+#load packages
+library(tidyverse)
+library(ggplot2)
+library(resrepo)
+library(wesanderson)
+library(writexl)
+```
+
+```{r load-data}
+#load serr sg object from explr_DE script
+load(path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/serr_sg"))
+```
+
+```{r counts-object}
+
+#subset sg object to get the counts and make gene ID's a column
+counts <- as.data.frame(sg$abundance) %>% rownames_to_column()
+
+#select opsins 
+counts <- counts %>% filter(rowname == "49QCG" | #lws
+                            rowname == "4A2Q93" |  #rh2a1
+                            rowname == "4A2Q94" )  #rh2a2
+
+#make ops rows
+counts <- column_to_rownames(counts)
+
+#check
+counts
+```
+
+```{r split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+col1_counts <- as.data.frame(counts[,1])     
+col2_counts <- as.data.frame(counts[,2]) 
+col3_counts <- as.data.frame(counts[,3])
+col4_counts <- as.data.frame(counts[,4])
+
+#flip df
+col1_df <- as.data.frame(t(col1_counts))
+col2_df <- as.data.frame(t(col2_counts))
+col3_df <- as.data.frame(t(col3_counts))
+col4_df <- as.data.frame(t(col4_counts))
+
+#relabel 
+colnames(col1_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(col2_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(col3_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(col4_df) <- c("LWS","RH2A1","RH2A2") 
+
+#find relative expression for each gene
+col1_df$LWS_cone  <- (col1_df$LWS  / (col1_df$LWS + col1_df$RH2A1 + col1_df$RH2A2))*100
+col1_df$RH2A1_cone <- (col1_df$RH2A1 / (col1_df$LWS + col1_df$RH2A1 + col1_df$RH2A2))*100
+col1_df$RH2A2_cone <- (col1_df$RH2A2 / (col1_df$LWS + col1_df$RH2A1 + col1_df$RH2A2))*100
+
+col2_df$LWS_cone  <- (col2_df$LWS  / (col2_df$LWS + col2_df$RH2A1 + col2_df$RH2A2))*100
+col2_df$RH2A1_cone <- (col2_df$RH2A1 / (col2_df$LWS + col2_df$RH2A1 + col2_df$RH2A2))*100
+col2_df$RH2A2_cone <- (col2_df$RH2A2 / (col2_df$LWS + col2_df$RH2A1 + col2_df$RH2A2))*100
+
+col3_df$LWS_cone  <- (col3_df$LWS  / (col3_df$LWS + col3_df$RH2A1 + col3_df$RH2A2))*100
+col3_df$RH2A1_cone <- (col3_df$RH2A1 / (col3_df$LWS + col3_df$RH2A1 + col3_df$RH2A2))*100
+col3_df$RH2A2_cone <- (col3_df$RH2A2 / (col3_df$LWS + col3_df$RH2A1 + col3_df$RH2A2))*100
+
+col4_df$LWS_cone  <- (col4_df$LWS  / (col4_df$LWS + col4_df$RH2A1 + col4_df$RH2A2))*100
+col4_df$RH2A1_cone <- (col4_df$RH2A1 / (col4_df$LWS + col4_df$RH2A1 + col4_df$RH2A2))*100
+col4_df$RH2A2_cone <- (col4_df$RH2A2 / (col4_df$LWS + col4_df$RH2A1 + col4_df$RH2A2))*100
+```
+
+```{r}
+#remove extra columns
+col1_df <- col1_df[,c(4:6)]
+
+#flip back
+col1_df2 <- as.data.frame(t(col1_df))
+colnames(col1_df2) <- "counts" 
+
+#add species column and updat column names 
+col1_df2$individual <- c("colonus1","colonus1","colonus1")
+col1_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+col1_df2
+```
+
+```{r}
+#remove extra columns
+col2_df <- col2_df[,c(4:6)]
+
+#flip back
+col2_df2 <- as.data.frame(t(col2_df))
+colnames(col2_df2) <- "counts" 
+
+#add species column and updat column names 
+col2_df2$individual <- c("colonus2","colonus2","colonus2")
+col2_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+col2_df2
+```
+
+```{r}
+#remove extra columns
+col3_df <- col3_df[,c(4:6)]
+
+#flip back
+col3_df2 <- as.data.frame(t(col3_df))
+colnames(col3_df2) <- "counts" 
+
+#add species column and updat column names 
+col3_df2$individual <- c("colonus3","colonus3","colonus3")
+col3_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+col3_df2
+```
+
+```{r}
+#remove extra columns
+col4_df <- col4_df[,c(4:6)]
+
+#flip back
+col4_df2 <- as.data.frame(t(col4_df))
+colnames(col4_df2) <- "counts" 
+
+#add species column and updat column names 
+col4_df2$individual <- c("colonus4","colonus4","colonus4")
+col4_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+col4_df2
+```
+
+```{r}
+all_exp_col <- rbind(col1_df2,col2_df2,col3_df2,col4_df2)
+
+ all_exp_col %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+
+all_exp_col %>%
+  ggplot(aes(x = individual, y = counts, fill = gene)) +
+  geom_col() +
+  ylim(0,100)+
+  #facet_wrap(facets = vars(factor(individual))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+
+all_exp_col %>%
+  ggplot(aes(x = gene, y = counts, fill = gene)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(individual))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+```
+
+###################################################################
+
+```{r fur-split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+fur1_counts <- as.data.frame(counts[,5])     
+fur2_counts <- as.data.frame(counts[,6]) 
+fur3_counts <- as.data.frame(counts[,7])
+fur4_counts <- as.data.frame(counts[,8])
+
+#flip df
+fur1_df <- as.data.frame(t(fur1_counts))
+fur2_df <- as.data.frame(t(fur2_counts))
+fur3_df <- as.data.frame(t(fur3_counts))
+fur4_df <- as.data.frame(t(fur4_counts))
+
+#relabel 
+colnames(fur1_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(fur2_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(fur3_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(fur4_df) <- c("LWS","RH2A1","RH2A2") 
+
+#find relative expression for each gene
+fur1_df$LWS_cone  <- (fur1_df$LWS  / (fur1_df$LWS + fur1_df$RH2A1 + fur1_df$RH2A2))*100
+fur1_df$RH2A1_cone <- (fur1_df$RH2A1 / (fur1_df$LWS + fur1_df$RH2A1 + fur1_df$RH2A2))*100
+fur1_df$RH2A2_cone <- (fur1_df$RH2A2 / (fur1_df$LWS + fur1_df$RH2A1 + fur1_df$RH2A2))*100
+
+fur2_df$LWS_cone  <- (fur2_df$LWS  / (fur2_df$LWS + fur2_df$RH2A1 + fur2_df$RH2A2))*100
+fur2_df$RH2A1_cone <- (fur2_df$RH2A1 / (fur2_df$LWS + fur2_df$RH2A1 + fur2_df$RH2A2))*100
+fur2_df$RH2A2_cone <- (fur2_df$RH2A2 / (fur2_df$LWS + fur2_df$RH2A1 + fur2_df$RH2A2))*100
+
+fur3_df$LWS_cone  <- (fur3_df$LWS  / (fur3_df$LWS + fur3_df$RH2A1 + fur3_df$RH2A2))*100
+fur3_df$RH2A1_cone <- (fur3_df$RH2A1 / (fur3_df$LWS + fur3_df$RH2A1 + fur3_df$RH2A2))*100
+fur3_df$RH2A2_cone <- (fur3_df$RH2A2 / (fur3_df$LWS + fur3_df$RH2A1 + fur3_df$RH2A2))*100
+
+fur4_df$LWS_cone  <- (fur4_df$LWS  / (fur4_df$LWS + fur4_df$RH2A1 + fur4_df$RH2A2))*100
+fur4_df$RH2A1_cone <- (fur4_df$RH2A1 / (fur4_df$LWS + fur4_df$RH2A1 + fur4_df$RH2A2))*100
+fur4_df$RH2A2_cone <- (fur4_df$RH2A2 / (fur4_df$LWS + fur4_df$RH2A1 + fur4_df$RH2A2))*100
+```
+
+```{r fur1}
+#remove extra columns
+fur1_df <- fur1_df[,c(4:6)]
+
+#flip back
+fur1_df2 <- as.data.frame(t(fur1_df))
+colnames(fur1_df2) <- "counts" 
+
+#add species column and updat column names 
+fur1_df2$individual <- c("furcifer1","furcifer1","furcifer1")
+fur1_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+fur1_df2
+```
+
+```{r fur2}
+#remove extra columns
+fur2_df <- fur2_df[,c(4:6)]
+
+#flip back
+fur2_df2 <- as.data.frame(t(fur2_df))
+colnames(fur2_df2) <- "counts" 
+
+#add species column and updat column names 
+fur2_df2$individual <- c("furcifer2","furcifer2","furcifer2")
+fur2_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+fur2_df2
+```
+
+```{r fur3}
+#remove extra columns
+fur3_df <- fur3_df[,c(4:6)]
+
+#flip back
+fur3_df2 <- as.data.frame(t(fur3_df))
+colnames(fur3_df2) <- "counts" 
+
+#add species column and updat column names 
+fur3_df2$individual <- c("furcifer3","furcifer3","furcifer3")
+fur3_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+fur3_df2
+```
+
+```{r fur4}
+#remove extra columns
+fur4_df <- fur4_df[,c(4:6)]
+
+#flip back
+fur4_df2 <- as.data.frame(t(fur4_df))
+colnames(fur4_df2) <- "counts" 
+
+#add species column and updat column names 
+fur4_df2$individual <- c("furcifer4","furcifer4","furcifer4")
+fur4_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+fur4_df2
+```
+
+```{r}
+all_exp_fur <- rbind(fur1_df2,fur2_df2,fur3_df2,fur4_df2)
+
+ all_exp_fur %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+
+all_exp_fur %>%
+  ggplot(aes(x = individual, y = counts, fill = gene)) +
+  geom_col() +
+  ylim(0,100)+
+  #facet_wrap(facets = vars(factor(individual))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+
+all_exp_fur %>%
+  ggplot(aes(x = gene, y = counts, fill = gene)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(individual))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+```
+
+################################################################
+
+```{r ful-split-counts}
+#split counts into seperate df for each ind (Make sure split correctly!)
+ful1_counts <- as.data.frame(counts[,9])     
+ful2_counts <- as.data.frame(counts[,10]) 
+ful3_counts <- as.data.frame(counts[,11])
+ful4_counts <- as.data.frame(counts[,12])
+
+#flip df
+ful1_df <- as.data.frame(t(ful1_counts))
+ful2_df <- as.data.frame(t(ful2_counts))
+ful3_df <- as.data.frame(t(ful3_counts))
+ful4_df <- as.data.frame(t(ful4_counts))
+
+#relabel 
+colnames(ful1_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(ful2_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(ful3_df) <- c("LWS","RH2A1","RH2A2") 
+colnames(ful4_df) <- c("LWS","RH2A1","RH2A2") 
+
+#find relative expression for each gene
+ful1_df$LWS_cone  <- (ful1_df$LWS  / (ful1_df$LWS + ful1_df$RH2A1 + ful1_df$RH2A2))*100
+ful1_df$RH2A1_cone <- (ful1_df$RH2A1 / (ful1_df$LWS + ful1_df$RH2A1 + ful1_df$RH2A2))*100
+ful1_df$RH2A2_cone <- (ful1_df$RH2A2 / (ful1_df$LWS + ful1_df$RH2A1 + ful1_df$RH2A2))*100
+
+ful2_df$LWS_cone  <- (ful2_df$LWS  / (ful2_df$LWS + ful2_df$RH2A1 + ful2_df$RH2A2))*100
+ful2_df$RH2A1_cone <- (ful2_df$RH2A1 / (ful2_df$LWS + ful2_df$RH2A1 + ful2_df$RH2A2))*100
+ful2_df$RH2A2_cone <- (ful2_df$RH2A2 / (ful2_df$LWS + ful2_df$RH2A1 + ful2_df$RH2A2))*100
+
+ful3_df$LWS_cone  <- (ful3_df$LWS  / (ful3_df$LWS + ful3_df$RH2A1 + ful3_df$RH2A2))*100
+ful3_df$RH2A1_cone <- (ful3_df$RH2A1 / (ful3_df$LWS + ful3_df$RH2A1 + ful3_df$RH2A2))*100
+ful3_df$RH2A2_cone <- (ful3_df$RH2A2 / (ful3_df$LWS + ful3_df$RH2A1 + ful3_df$RH2A2))*100
+
+ful4_df$LWS_cone  <- (ful4_df$LWS  / (ful4_df$LWS + ful4_df$RH2A1 + ful4_df$RH2A2))*100
+ful4_df$RH2A1_cone <- (ful4_df$RH2A1 / (ful4_df$LWS + ful4_df$RH2A1 + ful4_df$RH2A2))*100
+ful4_df$RH2A2_cone <- (ful4_df$RH2A2 / (ful4_df$LWS + ful4_df$RH2A1 + ful4_df$RH2A2))*100
+```
+
+```{r ful1}
+#remove extra columns
+ful1_df <- ful1_df[,c(4:6)]
+
+#flip back
+ful1_df2 <- as.data.frame(t(ful1_df))
+colnames(ful1_df2) <- "counts" 
+
+#add species column and updat column names 
+ful1_df2$individual <- c("fulva1","fulva1","fulva1")
+ful1_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+ful1_df2
+```
+
+```{r ful2}
+#remove extra columns
+ful2_df <- ful2_df[,c(4:6)]
+
+#flip back
+ful2_df2 <- as.data.frame(t(ful2_df))
+colnames(ful2_df2) <- "counts" 
+
+#add species column and updat column names 
+ful2_df2$individual <- c("fulva2","fulva2","fulva2")
+ful2_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+ful2_df2
+```
+
+```{r ful3}
+#remove extra columns
+ful3_df <- ful3_df[,c(4:6)]
+
+#flip back
+ful3_df2 <- as.data.frame(t(ful3_df))
+colnames(ful3_df2) <- "counts" 
+
+#add species column and updat column names 
+ful3_df2$individual <- c("fulva3","fulva3","fulva3")
+ful3_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+ful3_df2
+```
+
+```{r ful4}
+#remove extra columns
+ful4_df <- ful4_df[,c(4:6)]
+
+#flip back
+ful4_df2 <- as.data.frame(t(ful4_df))
+colnames(ful4_df2) <- "counts" 
+
+#add species column and updat column names 
+ful4_df2$individual <- c("fulva4","fulva4","fulva4")
+ful4_df2$gene <- c("LWS","RH2A1","RH2A2")
+
+#check
+ful4_df2
+```
+
+```{r}
+all_exp_ful <- rbind(ful1_df2,ful2_df2,ful3_df2,ful4_df2)
+
+ all_exp_ful %>%
+  ggplot(aes(x = individual, y = counts, fill = individual)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+
+all_exp_ful %>%
+  ggplot(aes(x = individual, y = counts, fill = gene)) +
+  geom_col() +
+  ylim(0,100)+
+  #facet_wrap(facets = vars(factor(individual))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+
+all_exp_ful %>%
+  ggplot(aes(x = gene, y = counts, fill = gene)) +
+  geom_col() +
+  ylim(0,100)+
+  facet_wrap(facets = vars(factor(individual))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme_minimal()
+```
+
+```{r all-graph}
+all_exp <- rbind(all_exp_col, all_exp_fur, all_exp_ful)
+all_exp$species <- c("colonus","colonus","colonus",
+                     "colonus","colonus","colonus",
+                     "colonus","colonus","colonus",
+                     "colonus","colonus","colonus",
+                     "furcifer","furcifer","furcifer",
+                     "furcifer","furcifer","furcifer",
+                     "furcifer","furcifer","furcifer",
+                     "furcifer","furcifer","furcifer",
+                     "fulva","fulva","fulva",
+                     "fulva","fulva","fulva",
+                     "fulva","fulva","fulva",
+                     "fulva","fulva","fulva")
+
+all_exp$species <- factor(all_exp$species, levels = c("colonus", "furcifer", "fulva" ))
+all_exp$gene <- factor(all_exp$gene, levels = c("RH2A1","RH2A2","LWS" ))
+
+```
+
+```{r ind-plot}
+#plot with all individuals
+p <- all_exp %>%
+  ggplot(aes(x = individual, y = counts, fill = species)) +
+  geom_bar(stat = "identity") +
+  ylim(0,100) +
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = wes_palette("Zissou1", n = 4)) +
+theme(axis.text.x=element_text(angle = 75, vjust = 0.5))
+
+p
+```
+
+```{r final-plot}
+#find mean of individuals for plot
+my_sum <- all_exp %>%
+  group_by(species, gene) %>%
+  summarise( 
+    n=n(),
+    mean=mean(counts),
+    sd=sd(counts)
+  ) %>%
+  mutate( se=sd/sqrt(n))  %>%
+  mutate( ic=se * qt((1-0.05)/2 + .5, n-1))
+
+#plot mean
+ p1 <- my_sum %>%
+  ggplot(aes(x = species, y = mean, fill = as.factor(species))) +
+  geom_bar(stat = "identity") +
+  ylim(0,100) +
+  facet_wrap(facets = vars(factor(gene))) +
+  scale_fill_manual(values = c("#00cc99", "#4473c4", "grey95"),
+                    labels=c("P. colonus (TEP)","P. furcifer (CAR)", "C. fulva (CAR)"),
+                    name = "Species") +
+theme_classic() +
+   theme(text = element_text(size = 20),
+         axis.text.x = element_blank(),
+         axis.title.x = element_blank()) +
+geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2,
+                 position=position_dodge(.9)) +
+   labs(y = "Relative Opsin Expression (%)") 
+p1
+```
+
+###SAVE RESULTS
+
+```{r save-plot}
+ggsave(path = path_resrepo("results/p10_opsins/serr/s03_serr_opsin_exp_double"),
+       filename = "serr_double_cone_exp.png",
+       height = 5,
+       width = 12,
+       plot = p1)
+```
+
+```{r save-data}
+#save mean relative expression 
+write_xlsx(x = my_sum,
+           path =  path_resrepo("data/intermediate/p10_opsins/serr/s03_serr_opsin_exp_double/serr_double_mean_ops_exp.xlsx"))
+
+#save individual relative expression
+all_exp <- all_exp %>% rownames_to_column("opsin")
+write_xlsx(x = all_exp,
+           path = path_resrepo("data/intermediate/p10_opsins/serr/s03_serr_opsin_exp_double/serr_double_ind_ops_exp.xlsx"))
+
+#save raw counts 
+counts <- counts %>% rownames_to_column("opsin")
+write_xlsx(x = counts,
+           path = path_resrepo("data/intermediate/p10_opsins/serr/s03_serr_opsin_exp_double/serr_double_raw_ops_counts.xlsx"))
+
+```

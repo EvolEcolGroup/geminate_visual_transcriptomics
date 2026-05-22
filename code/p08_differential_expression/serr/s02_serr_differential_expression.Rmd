@@ -1,0 +1,472 @@
+---
+title: "Serranid differential expression analysis"
+author: "Eirlys Tysall"
+date: "2023-02-24"
+output: html_document
+---
+
+```{r load-packages, include=FALSE}
+#load packages
+suppressPackageStartupMessages({
+  library(data.table)
+  library(tidyverse)
+  library(tximport)
+  library(markdown)
+  library(DESeq2)
+  library(SummarizedExperiment)
+  library(resrepo)
+})
+```
+
+```{r load-functions, message=FALSE}
+#load functions
+#make tx2gene object function
+source(path_resrepo("code/r_functions/make_tx2gene.R"))
+
+#join multiple tximport outputs function
+source(path_resrepo("code/r_functions/split_combine_rejoin.R"))
+```
+
+```{r read-in-data, message=FALSE}
+#read in colonus annotations
+col_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/serr/colonus_final_annotations.tsv"))
+
+# read in furcifer annotations
+fur_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/serr/furcifer_final_annotations.tsv"))
+
+# read in fulva annotations
+ful_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/serr/fulva_final_annotations.tsv"))
+ 
+#salmon quant results directory
+salmon_dir <- path_resrepo("/data/intermediate/s07_salmon/serr/final")
+
+#read in meta data info
+meta <- read_csv(file.path(salmon_dir, "meta_serr.txt"), col_types=cols(.default=col_factor()))
+
+#salmon quant.sf
+#col
+a_quant <- read_tsv(file.path(salmon_dir,"S28/quant.sf"))
+b_quant <- read_tsv(file.path(salmon_dir,"S29/quant.sf"))
+c_quant <- read_tsv(file.path(salmon_dir,"S30/quant.sf"))
+d_quant <- read_tsv(file.path(salmon_dir,"S31/quant.sf"))
+#fur
+e_quant <- read_tsv(file.path(salmon_dir,"S17/quant.sf"))
+f_quant <- read_tsv(file.path(salmon_dir,"S18/quant.sf"))
+g_quant <- read_tsv(file.path(salmon_dir,"S43/quant.sf"))
+h_quant <- read_tsv(file.path(salmon_dir,"S46/quant.sf"))
+#ful
+i_quant <- read_tsv(file.path(salmon_dir,"S13/quant.sf"))
+j_quant <- read_tsv(file.path(salmon_dir,"S14/quant.sf"))
+k_quant <- read_tsv(file.path(salmon_dir,"S15/quant.sf"))
+l_quant <- read_tsv(file.path(salmon_dir,"S19/quant.sf"))
+```
+
+```{r diff-exp}
+##RUNS FULL DIFFERENTIAL EXPRESSION ANALYSIS
+
+#extract colonus
+meta_1 <- meta %>%
+   dplyr::slice(1:4)
+
+#location of all salmon quant.sf files
+salmonfiles_1 <- file.path(salmon_dir, meta_1$Name,"quant.sf")
+names(salmonfiles_1) <- meta_1$Name
+
+#check all files named in meta_info.txt present
+stopifnot(all(file.exists(salmonfiles_1)))
+
+###
+
+#extract furcifer
+meta_2 <- meta %>%
+   dplyr::slice(5:8)
+
+#location of all salmon quant.sf files
+salmonfiles_2 <- file.path(salmon_dir, meta_2$Name,"quant.sf")
+names(salmonfiles_2) <- meta_2$Name
+
+#check all files named in meta_info.txt present
+stopifnot(all(file.exists(salmonfiles_2)))
+
+###
+
+#extract fulva
+meta_3 <- meta %>%
+   dplyr::slice(-(1:8))
+
+meta_3
+
+#location of all salmon quant.sf files
+salmonfiles_3 <- file.path(salmon_dir, meta_3$Name,"quant.sf")
+names(salmonfiles_3) <- meta_3$Name
+
+#check all files named in meta_info.txt present
+stopifnot(all(file.exists(salmonfiles_3)))
+
+##################################################
+
+col_tx2gene_object <- make_tx2gene(eggnog_annotation_file = col_annotations,
+                                   salmon_quant_file_1 = a_quant,
+                                   salmon_quant_file_2 = b_quant,
+                                   salmon_quant_file_3 = c_quant, 
+                                   salmon_quant_file_4 = d_quant)
+  
+
+#colonus
+#use tx2gene object to collapse trinity isoforms to gene level annotations
+sg_col <- tximport(files = salmonfiles_1, 
+                   type = "salmon", 
+                   tx2gene = col_tx2gene_object, 
+                   ignoreAfterBar = TRUE)
+
+#############################################
+#furcifer
+#create tx2gene object 
+fur_tx2gene_object <- make_tx2gene(eggnog_annotation_file = fur_annotations,
+                                   salmon_quant_file_1 = e_quant,
+                                   salmon_quant_file_2 = f_quant,
+                                   salmon_quant_file_3 = g_quant, 
+                                   salmon_quant_file_4 = h_quant)
+
+ 
+#furcifer
+#use tx2gene object to collapse trinity isoforms to gene level annotations
+sg_fur <- tximport(files = salmonfiles_2, 
+                   type = "salmon", 
+                   tx2gene = fur_tx2gene_object)
+
+########################################
+#fulva
+#create tx2gene object 
+ful_tx2gene_object <- make_tx2gene(eggnog_annotation_file = ful_annotations,
+                                   salmon_quant_file_1 = i_quant,
+                                   salmon_quant_file_2 = j_quant,
+                                   salmon_quant_file_3 = k_quant, 
+                                   salmon_quant_file_4 = l_quant)
+
+
+
+
+#fulva
+#use tx2gene object to collapse trinity isoforms to gene level annotations
+sg_ful <- tximport(files = salmonfiles_3, 
+                   type = "salmon", 
+                   tx2gene = ful_tx2gene_object, 
+                   ignoreAfterBar = TRUE)
+
+
+#################################
+
+#tximport output has 4 elements: counts, abundance, length, countsFromAbundance
+#Here I extract each equivalent element from colonus and furcifer tximport output 
+#and join them using matching row names 
+
+col_counts <- rownames_to_column(as.data.frame(sg_col$counts))
+col_abd <- rownames_to_column(as.data.frame(sg_col$abundance))
+col_len <- rownames_to_column(as.data.frame(sg_col$length))
+
+fur_counts <- rownames_to_column(as.data.frame(sg_fur$counts))
+fur_abd <- rownames_to_column(as.data.frame(sg_fur$abundance))
+fur_len <- rownames_to_column(as.data.frame(sg_fur$length))
+
+ful_counts <- rownames_to_column(as.data.frame(sg_ful$counts))
+ful_abd <- rownames_to_column(as.data.frame(sg_ful$abundance))
+ful_len <- rownames_to_column(as.data.frame(sg_ful$length))
+
+###
+
+#add in zeros for counts
+
+col_fur_counts <- full_join(col_counts, fur_counts)
+
+all_counts<- full_join(col_fur_counts, ful_counts)
+
+all_counts_na <- all_counts[!complete.cases(all_counts), ] #2735
+
+all_counts[is.na(all_counts)] <- 0
+
+###
+
+##add in zeros for abundance
+
+col_fur_abd <- full_join(col_abd, fur_abd)
+
+all_abd<- full_join(col_fur_abd, ful_abd)
+
+all_abd_na <- all_abd[!complete.cases(all_abd), ] #2735
+
+all_abd[is.na(all_abd)] <- 0
+
+###
+
+##add in mean for length
+
+col_fur_len <- full_join(col_len, fur_len)
+
+all_len<- full_join(col_fur_len, ful_len)
+
+all_len_na <- all_len[!complete.cases(all_len), ] #2735
+
+# function for length mean
+replace_na_with_mean <- function(row) {
+  mean_value <- mean(row, na.rm = TRUE)  # Calculate mean excluding NAs
+  row[is.na(row)] <- mean_value           # Replace NAs with mean
+  return(row)
+}
+
+# Apply the function to each row
+all_len[, -1] <- t(apply(all_len[, -1], 1, replace_na_with_mean))
+
+all_counts_m <- all_counts %>% column_to_rownames() %>% as.matrix()
+all_abd_m <- all_abd %>% column_to_rownames() %>% as.matrix()
+all_len_m <- all_len %>% column_to_rownames() %>% as.matrix()
+
+all_sg <- list()
+  
+  #Add each matrix to list 
+  all_sg[["abundance"]] <- all_abd_m
+  all_sg[["counts"]] <- all_counts_m
+  all_sg[["length"]] <- all_len_m
+  all_sg[["countsFromAbundance"]] <- "no"
+  
+  
+sg <- all_sg
+
+################################
+
+#creates _DESeqDataSet_
+ds_se <- DESeqDataSetFromTximport(txi = sg, 
+                                  colData = meta,
+                                  design = ~ Species)
+
+##########################################
+
+#runs DESeq diff expression analysis
+ds_se <- DESeq2::DESeq(ds_se)
+```
+
+```{r subset-results}
+res_gem_filt <- DESeq2::results(ds_se, 
+                               name="Species_P.furcifer_vs_P.colonus", 
+                               lfcThreshold = 0.5, 
+                               alpha = 0.05)
+
+gene_code <- c("49XM4","49QHR","49VMA","4A6WB","49XFU1","49XFU2","49WBX","49TYN",
+            "4A0DI","49UVW","4A127","49TK5","49WJ7","49UFF","49S7R","4A2MR",
+            "49YH8","49VB3","49SJD","49T5U","49R5D","49WZN","49S06","49PYM","PARIE",
+            "4A27E","49XC4","4A5MG","4A13M","49V8D","4A0TV","49XUM","49VYF1",
+            "49VYF2","49VUD","4A0N0","49XUW1","49XUW2","49QHG","49WTJ","49YV11",
+            "49YV12","49SUB","49R8Z","49XPK","49Y02","49TP6","49XM9","4A6Y0",
+            "49UXN","4A6E6","49Z3E",
+            "49S3W","49SQ7","49R2B","4A582","4A63P","49VV8","49ZE6","49UB5",
+            "4A1XJ","49VYA","49UJA","49UMK","49WSA","49XSJ","49RM7","4A4PS",
+            "4A4VB","49VSK","49YFA","49ZMT","4A1II","49QNB","49VVR","49UCK",
+            "49RFK","4A44T","4A4FK","49WVI","49YJN","4A0K4","49WUQ")
+
+gene_name <- c("Exo-rho","opn3","opn4a","opn4b","opn4xa","opn4xb","opn5","opn6a","opn7a",
+           "opn7b","opn7d","opn8a","opn8b","opn8c","opn9","parapinopsin-like","rgra",
+           "rgrb","rrh","tmtops2b","tmtops3a","tmtopsa","tmtopsb","VAL-opsin-a","parietopsin",
+           "aanat1","arntl","ciart","clock a","clock b","cry-dash","cry1-like","cry1a",
+           "cry1b","cry2","cry5","nocta","noctb","npas2","nr1d1","nr1d2a",
+           "nr1d2b","per1","per2","per3","rora","rorb","timeless", "csnk1da",
+           "csnk1db","csnk1ea","csnk1eb",
+           "RCVRN","GRK1","GRK7","SAG","ARR3","CNGA1","CNGA3","CNGB1",
+           "CNGB3","gnat1","gnat2","GNB1","GNB3","GNB5a","GNB5b","GNGT1",
+           "GNGT2","guca1a","guca1b","guca1c","gucy2d","gucy2f","pde6a","pde6b",
+           "pde6c","pde6g","pde6h","RGS9","RGS9BP","slc24a1","slc24a2")
+
+df <- data.frame(
+  gene = gene_code,
+  gene_name = gene_name
+)
+
+# subset results
+res_gem_sub <- res_gem_filt[gene_code,]  
+res_gem_sub$padj <- p.adjust(res_gem_sub$pvalue, method="BH")
+
+res_gem_df <- rownames_to_column(as.data.frame(res_gem_sub))
+colnames(res_gem_df)[1]<- "gene"
+
+full <-full_join(df, res_gem_df, by = "gene")
+```
+
+```{r save-subset}
+#save subset results 
+writexl::write_xlsx(full, path = path_resrepo("data/intermediate/p08_differential_expression/s02_differential_expression/serr/serr_subset_filt.xlsx"))
+```
+
+##SAVE DATA OBJECTS##
+
+```{r vst-transform}
+#Variance stabilising transformation (VST), a heuristic that transforms the 
+# variance so it becomes independent of mean
+vsd <- DESeq2::vst(ds_se)
+
+# save vsd data for use in downstream analysis 
+save(vsd, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/serr_vsd"))
+
+```
+
+```{r save-sg}
+#save sg data for use in opsin expression analysis 
+save(sg, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/serr_sg"))
+
+#ind species sg
+#atri
+save(sg_col, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/colonus_sg"))
+
+#multi
+save(sg_fur, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/furcifer_sg"))
+
+#atri
+save(sg_ful, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/fulva_sg"))
+```
+
+```{r save-ds_se}
+#save DESeqDataSet for downstream analysis
+save(ds_se, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/serr_ds_se"))
+```
+
+
+##RUN AND SAVE RESULTS OBJECTS -- FULL RESULTS OF ALL GENES##
+
+### COLONUS vs FURCIFER
+```{r gem-results}
+#make res object with comparison want
+res_gem <- DESeq2::results(ds_se, name = "Species_P.furcifer_vs_P.colonus")
+```
+
+```{r gem-save}
+#save geminate comparison
+res_gem <- as.data.frame(res_gem)
+res_gem <- setDT(res_gem, keep.rownames = "gene")
+
+write.csv(res_gem, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/unfiltered_results/serr_res_gem.csv"), row.names = FALSE)
+```
+
+### COLONUS vs FULVA
+
+```{r col-ful-results}
+#make res object with comparison want
+res_col_ful <- DESeq2::results(ds_se, name = "Species_C.fulva_vs_P.colonus")
+```
+
+```{r col-ful-save}
+#save results of col_fur comparison 
+res_col_ful <- as.data.frame(res_col_ful)
+res_col_ful <- setDT(res_col_ful, keep.rownames = "gene")
+
+write.csv(res_col_ful, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/unfiltered_results/serr_res_col_ful.csv"), row.names = FALSE)
+```
+
+### FULVA vs FURCIFER
+
+```{r ful-fur-results}
+#change levels before run in order to get ful vs furcifer comparison
+ds_se1 <- ds_se
+
+#levels
+ds_se1$Species <- relevel(ds_se1$Species, ref = "C.fulva")
+
+#runs DESeq diff expression analysis
+ds_se1 <- DESeq2::DESeq(ds_se1)
+
+#check levels
+DESeq2::resultsNames(ds_se1)
+
+#make res object with comparison want
+res_fur_ful <- DESeq2::results(ds_se1, name = "Species_P.furcifer_vs_C.fulva")
+```
+
+```{r fur-ful-save}
+#save fur-ful results 
+res_fur_ful <- as.data.frame(res_fur_ful)
+res_fur_ful <- setDT(res_fur_ful, keep.rownames = "gene")
+
+write.csv(res_fur_ful, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/unfiltered_results/serr_res_fur_ful.csv"), row.names = FALSE)
+```
+
+###SAVE WITH FILTERING AS PER SCHURCH PAPER
+
+```{r filtering}
+#filter results with minimum lfc = 0.5 and padj = 0.01
+res_gem_filt <- DESeq2::results(ds_se, 
+                               name = "Species_P.furcifer_vs_P.colonus", 
+                               lfcThreshold = 0.5,
+                               alpha = 0.05)
+summary(res_gem_filt)
+table(res_gem_filt$padj < 0.05)
+
+
+
+res_col_ful_filt <- DESeq2::results(ds_se, 
+                               name = "Species_C.fulva_vs_P.colonus", 
+                               lfcThreshold = 0.5, 
+                               alpha = 0.05)
+summary(res_col_ful_filt)
+
+res_fur_ful_filt <- DESeq2::results(ds_se1, 
+                               name = "Species_P.furcifer_vs_C.fulva", 
+                               lfcThreshold = 0.5, 
+                               alpha = 0.05)
+summary(res_fur_ful_filt)
+```
+
+```{r save-filtered}
+#save filtered results
+#geminates
+res_gem_filt <- as.data.frame(res_gem_filt)
+res_gem_filt <- setDT(res_gem_filt, keep.rownames = "gene")
+write.csv(res_gem_filt, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/filtered_results/serr_res_gem_filt.csv"), row.names = FALSE)
+
+#colonus vs fulva
+res_col_ful_filt <- as.data.frame(res_col_ful_filt)
+res_col_ful_filt <- setDT(res_col_ful_filt, keep.rownames = "gene")
+write.csv(res_col_ful_filt, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/filtered_results/serr_res_col_ful_filt.csv"), row.names = FALSE)
+
+#furcifer vs fulva
+res_fur_ful_filt <- as.data.frame(res_fur_ful_filt)
+res_fur_ful_filt <- setDT(res_fur_ful_filt, keep.rownames = "gene")
+write.csv(res_fur_ful_filt, file = path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/filtered_results/serr_res_fur_ful_filt.csv"), row.names = FALSE)
+```
+
+```{r session-info}
+#Session Info
+sessionInfo()
+```
+
+R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 20.04.6 LTS
+
+Matrix products: default
+BLAS/LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.8.so;  LAPACK version 3.9.0
+
+locale:
+ [1] LC_CTYPE=en_GB.UTF-8       LC_NUMERIC=C               LC_TIME=en_GB.UTF-8        LC_COLLATE=en_GB.UTF-8    
+ [5] LC_MONETARY=en_GB.UTF-8    LC_MESSAGES=en_GB.UTF-8    LC_PAPER=en_GB.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C             LC_MEASUREMENT=en_GB.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: Europe/London
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+ [1] utf8_1.2.4                  generics_0.1.3              SparseArray_1.2.4           bitops_1.0-7               
+ [5] DESeq2_1.42.1               lattice_0.21-9              digest_0.6.35               magrittr_2.0.3             
+ [9] evaluate_0.23               grid_4.3.2                  fastmap_1.2.0               Matrix_1.6-1.1             
+[13] writexl_1.5.0               GenomeInfoDb_1.38.8         fansi_1.0.6                 scales_1.3.0               
+[17] codetools_0.2-19            abind_1.4-5                 cli_3.6.2                   rlang_1.1.3                
+[21] crayon_1.5.2                XVector_0.42.0              Biobase_2.62.0              munsell_0.5.1              
+[25] DelayedArray_0.28.0         yaml_2.3.8                  S4Arrays_1.2.1              tools_4.3.2                
+[29] parallel_4.3.2              BiocParallel_1.36.0         dplyr_1.1.4                 colorspace_2.1-0           
+[33] ggplot2_3.5.1               locfit_1.5-9.9              GenomeInfoDbData_1.2.11     SummarizedExperiment_1.32.0
+[37] BiocGenerics_0.48.1         vctrs_0.6.5                 R6_2.5.1                    matrixStats_1.3.0          
+[41] stats4_4.3.2                lifecycle_1.0.4             zlibbioc_1.48.2             S4Vectors_0.40.2           
+[45] IRanges_2.36.0              pkgconfig_2.0.3             gtable_0.3.5                pillar_1.9.0               
+[49] glue_1.7.0                  Rcpp_1.0.12                 xfun_0.44                   tibble_3.2.1               
+[53] GenomicRanges_1.54.1        tidyselect_1.2.1            rstudioapi_0.16.0           MatrixGenerics_1.14.0      
+[57] knitr_1.46                  htmltools_0.5.8.1           rmarkdown_2.26              compiler_4.3.2             
+[61] RCurl_1.98-1.14            

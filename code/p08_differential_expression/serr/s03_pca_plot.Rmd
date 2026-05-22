@@ -1,0 +1,209 @@
+---
+title: "PCA plot"
+author: "Eirlys Tysall"
+date: "2023-03-30"
+output: html_document
+---
+
+```{r load-packages, message=FALSE}
+#load packages
+library(tidyverse)
+library(resrepo)
+library(patchwork)
+```
+
+```{r load-data}
+#load vsd data
+load(path_resrepo("/data/intermediate/p08_differential_expression/s02_differential_expression/serr/data_objects/serr_vsd"))
+
+#read in colonus annotations
+col_annotations <- read_tsv(path_resrepo("/data/intermediate/p08_differential_expression/s00_final_annotation/serr/colonus_final_annotations.tsv"))
+
+#read in meta info
+meta <- read_csv(path_resrepo("/data/intermediate/p07_salmon/serr/final/meta_serr.txt"))
+```
+
+```{r run-pca}
+#assay vsd to matrix
+vsd_mat <- assay(vsd)
+
+#run pca
+pca <- prcomp(t(vsd_mat))
+
+#get variance
+percentVar <- (pca$sdev^2 / sum( pca$sdev^2 )) * 100
+percentVar <- round(percentVar, digits = 0)
+
+#Create data frame with metadata and PC3 and PC4 values for input to ggplot
+df <- cbind(meta, pca$x)
+
+#relevel species for plot
+df$Species = factor(df$Species, levels = c("P.colonus", "P.furcifer", "C.fulva"))
+```
+
+```{r plot-pc1-pc2}
+#plot PC1 vs PC2
+P1 <- ggplot(df, aes(x = PC1, y = PC2, 
+                          color=Species, 
+                          shape=Ocean,
+                          fill=Type,
+                          stroke=1,
+                          label = Name)) +
+
+  geom_point(size=4) +
+  geom_text(check_overlap = TRUE, hjust = 0, nudge_x = 0.5, nudge_y = 0.5) +
+scale_color_manual(values = c("#00cc99","#4473c4","grey92"), 
+                     labels=c(
+                       expression(italic("P. colonus")),
+                       expression(italic("P. furcifer")),
+                       expression(italic("C. fulva")))) +
+  scale_shape_manual(values = c(21, 24)) +
+  scale_fill_manual(name = "Type", 
+                    values = c("white","grey94")) +
+  theme_minimal() +
+  theme(legend.text.align = 0,
+        text = element_text(size=22),
+        legend.title = element_blank()) +
+  xlab(paste0("\nPC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance\n")) + 
+  coord_fixed()
+
+PC1vsPC2 <- P1 + 
+  # add size for Source
+  geom_point(aes(size = Type)) +
+  # defining size with 2 marginally different values
+  scale_size_manual(name = "Type", values = c(5, 5.001)) +
+  # Remove fill legend and replace the fill legend using the newly created size
+  guides(fill = "none", 
+         size = guide_legend(override.aes = list(shape = c(1, 16)))) 
+
+PC1vsPC2
+```
+
+```{r plot-pc2-pc3}
+#plot PC2 vs PC3
+
+p2 <- ggplot(df, aes(x = PC2, y = PC3, 
+                     color=Species, 
+                     shape=Ocean,
+                     fill=Type,
+                     stroke=1,
+                     label = Name)) +
+  geom_point(size=4) +
+  geom_text(check_overlap = TRUE, hjust = 0, nudge_x = 0.5, nudge_y = 0.5) +
+  scale_color_manual(values = c("#00cc99", "#4473c4", "grey92"), 
+                     labels=c(
+                       expression(italic("P. colonus")),
+                       expression(italic("P. furcifer")),
+                       expression(italic("C. fulva")))) +
+  scale_shape_manual(values = c(21, 24)) +
+  scale_fill_manual(name = "Type", 
+                    values = c("white","grey94")) +
+  theme_minimal() +
+  theme(legend.text.align = 0,
+        text = element_text(size=22),
+        legend.title = element_blank()) +
+  xlab(paste0("\nPC2: ",percentVar[2],"% variance")) +
+  ylab(paste0("PC3: ",percentVar[3],"% variance\n")) + 
+  coord_fixed()
+
+PC2vsPC3 <- p2 + 
+  # add size for Source
+  geom_point(aes(size = Type)) +
+  # defining size with 2 marginally different values
+  scale_size_manual(name = "Type", values = c(5, 5.001)) +
+  # Remove fill legend and replace the fill legend using the newly created size
+  guides(fill = "none", 
+         size = guide_legend(override.aes = list(shape = c(1, 16))))
+
+
+PC2vsPC3
+```
+
+```{r plot-pc2-pc3}
+#plot PC2 vs PC3
+P3 <- ggplot(df, aes(x = PC1, y = PC3, 
+                     color=Species, 
+                     shape=Ocean,
+                     fill=Type,
+                     stroke=1,
+                     label = Name)) +
+  geom_point(size=4) +
+  geom_text(check_overlap = TRUE, hjust = 0, nudge_x = 0.5, nudge_y = 0.5) +
+  scale_color_manual(values = c("#00cc99", "#4473c4", "grey92"), 
+                     labels=c(
+                       expression(italic("P. colonus")),
+                       expression(italic("P. furcifer")),
+                       expression(italic("C. fulva")))) +
+  scale_shape_manual(values = c(21, 24)) +
+  scale_fill_manual(name = "Type", 
+                    values = c("white","grey94")) +
+  theme_minimal() +
+  theme(legend.text.align = 0,
+        text = element_text(size=22),
+        legend.title = element_blank()) +
+  xlab(paste0("\nPC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC3: ",percentVar[3],"% variance\n")) + 
+  coord_fixed()
+
+PC1vsPC3 <- P3 + 
+  # add size for Source
+  geom_point(aes(size = Type)) +
+  # defining size with 2 marginally different values
+  scale_size_manual(name = "Type", values = c(5, 5.001)) +
+  # Remove fill legend and replace the fill legend using the newly created size
+  guides(fill = "none", 
+         size = guide_legend(override.aes = list(shape = c(1, 16))))
+
+
+PC1vsPC3
+```
+
+```{r combined-plot}
+#combined plot
+comb_pca <- (PC1vsPC2 + PC2vsPC3 + PC1vsPC3) + plot_layout(guides='collect')
+comb_pca
+```
+
+```{r filtered-version}
+#filtering 
+#need to add in filtering of outliers for final pca?
+test <- rownames_to_column(as.data.frame(vsd_mat))
+test_filt <- test %>% filter(!rowname %in% fur_ful_all_out$gene)
+vsd_mat_filt <- as.matrix(column_to_rownames(test_filt))
+```
+
+```{r save-plot}
+#save pca plot pc1 vs pc2
+ggsave(path = path_resrepo("/results/08_differential_expression/s03_pca_plot/serr"),
+       filename = "serr_pc1_pc2_plot.png",
+       bg='white',
+       width = 11,
+       height = 6,
+       plot = PC1vsPC2)
+
+#save pca plot pc2 vs pc3
+ggsave(path = path_resrepo("/results/p08_differential_expression/s03_pca_plot/serr"),
+       filename = "serr_pc2_pc3_plot.png",
+       bg='white',
+       width = 11,
+       height = 6,
+       plot = PC2vsPC3)
+
+#save pca plot pc1 vs pc3
+ggsave(path = path_resrepo("/results/p08_differential_expression/s03_pca_plot/serr"),
+       filename = "serr_pc1_pc3_plot.png",
+       bg='white',
+       width = 11,
+       height = 6,
+       plot = PC1vsPC3)
+
+##save pca plot combined
+ggsave(path = path_resrepo("/results/p08_differential_expression/s03_pca_plot/serr"),
+       filename = "serr_comb_pca_plot.png",
+       bg='white',
+       width = 15,
+       height = 6,
+       plot = comb_pca)
+
+```
